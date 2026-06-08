@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SKY+성균 정시 점수 계산기 2027</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════
+   GLOBAL TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --snu-red:    #8B0000;
+  --snu-light:  #B22222;
+  --ku-crimson: #6B0000;
+  --ku-gold:    #C8A84B;
+  --ku-gold-l:  #E8C96A;
+  --yu-blue:    #00205C;
+  --yu-light:   #1A3A7A;
+  --yu-navy:    #0A1A4A;
+
+  --ink:        #1A1410;
+  --paper:      #FAF6EF;
+  --paper-warm: #F2EBD9;
+  --line:       #D4C9B0;
+  --muted:      #8B7D6B;
+  --white:      #FFFFFF;
+  --score-good: #2D6A2D;
+
+  --skku-green:  #4A7C3F;
+  --skku-dark:   #2D5527;
+  --skku-light:  #6A9E5F;
+  --skku-mint:   #E8F4E5;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════
+   PAGE MANAGEMENT
+═══════════════════════════════════════════ */
+.page { display: none; }
+.page.active { display: block; }
+
+/* ═══════════════════════════════════════════
+   LANDING PAGE
+═══════════════════════════════════════════ */
+#landing {
+  min-height: 100vh;
+  background: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+  position: relative;
+  overflow: hidden;
+}
+#landing::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 20% 40%, rgba(139,0,0,0.35) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 60% at 80% 60%, rgba(0,32,92,0.4) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 50% 20%, rgba(200,168,75,0.12) 0%, transparent 50%);
+  pointer-events: none;
+}
+#landing::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg, transparent, transparent 40px,
+    rgba(255,255,255,0.012) 40px, rgba(255,255,255,0.012) 41px
+  );
+  pointer-events: none;
+}
+
+.landing-inner {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 780px;
+  text-align: center;
+}
+
+.landing-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(200,168,75,0.4);
+  padding: 0.35rem 1.2rem;
+  border-radius: 2px;
+  margin-bottom: 1.8rem;
+  color: var(--ku-gold);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.landing-eyebrow span { color: rgba(200,168,75,0.5); }
+
+.landing-title {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  color: var(--white);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  margin-bottom: 0.6rem;
+}
+.landing-title em {
+  font-style: normal;
+  color: var(--ku-gold-l);
+}
+
+.landing-sub {
+  color: rgba(255,255,255,0.45);
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 3.5rem;
+}
+
+/* University cards */
+.uni-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  width: 100%;
+}
+
+.uni-card {
+  position: relative;
+  padding: 2rem 1.5rem 1.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.25s, box-shadow 0.25s;
+  overflow: hidden;
+  border: 1px solid transparent;
+}
+.uni-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.uni-card:hover { transform: translateY(-4px); }
+.uni-card:hover::before { opacity: 1; }
+
+/* SNU */
+.card-snu {
+  background: linear-gradient(145deg, rgba(139,0,0,0.9) 0%, rgba(80,0,0,0.95) 100%);
+  border-color: rgba(200,168,75,0.25);
+  box-shadow: 0 4px 30px rgba(139,0,0,0.3);
+}
+.card-snu::before { background: linear-gradient(145deg, rgba(200,168,75,0.12), transparent); }
+.card-snu:hover { box-shadow: 0 10px 40px rgba(139,0,0,0.45); }
+
+/* KU */
+.card-ku {
+  background: linear-gradient(145deg, rgba(50,0,0,0.92) 0%, rgba(30,0,0,0.96) 100%);
+  border-color: rgba(200,168,75,0.3);
+  box-shadow: 0 4px 30px rgba(50,0,0,0.4);
+}
+.card-ku::before { background: linear-gradient(145deg, rgba(200,168,75,0.15), transparent); }
+.card-ku:hover { box-shadow: 0 10px 40px rgba(50,0,0,0.55); }
+
+/* YU */
+.card-yu {
+  background: linear-gradient(145deg, rgba(0,32,92,0.9) 0%, rgba(0,15,50,0.96) 100%);
+  border-color: rgba(100,150,220,0.25);
+  box-shadow: 0 4px 30px rgba(0,32,92,0.4);
+}
+.card-yu::before { background: linear-gradient(145deg, rgba(100,150,220,0.12), transparent); }
+.card-yu:hover { box-shadow: 0 10px 40px rgba(0,32,92,0.55); }
+
+/* SKKU */
+.card-skku {
+  background: linear-gradient(145deg, rgba(45,85,39,0.92) 0%, rgba(25,55,20,0.96) 100%);
+  border-color: rgba(106,158,95,0.3);
+  box-shadow: 0 4px 30px rgba(45,85,39,0.4);
+}
+.card-skku::before { background: linear-gradient(145deg, rgba(106,158,95,0.15), transparent); }
+.card-skku:hover { box-shadow: 0 10px 40px rgba(45,85,39,0.55); }
+
+.uni-badge {
+  display: inline-block;
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2px;
+  margin-bottom: 1rem;
+}
+.card-snu .uni-badge  { background: rgba(200,168,75,0.2); color: var(--ku-gold-l); }
+.card-ku  .uni-badge  { background: rgba(200,168,75,0.2); color: var(--ku-gold-l); }
+.card-yu  .uni-badge  { background: rgba(100,150,220,0.2); color: #90b8ff; }
+.card-skku .uni-badge { background: rgba(106,158,95,0.2); color: #a8d4a0; }
+
+.uni-name {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 0.3rem;
+  line-height: 1.2;
+}
+.uni-eng {
+  font-size: 0.68rem;
+  letter-spacing: 0.15em;
+  color: rgba(255,255,255,0.35);
+  margin-bottom: 1.2rem;
+  font-weight: 500;
+}
+
+.uni-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1.5rem;
+}
+.uni-tag {
+  font-size: 0.65rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 2px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.card-snu  .uni-tag { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); }
+.card-ku   .uni-tag { background: rgba(200,168,75,0.12); color: rgba(200,168,75,0.7); }
+.card-yu   .uni-tag { background: rgba(100,150,220,0.12); color: rgba(150,190,255,0.7); }
+.card-skku .uni-tag { background: rgba(106,158,95,0.15); color: rgba(168,212,160,0.85); }
+
+.uni-enter {
+  width: 100%;
+  padding: 0.65rem;
+  border: none;
+  border-radius: 3px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: opacity 0.2s;
+  position: relative;
+  z-index: 1;
+}
+.uni-enter:hover { opacity: 0.88; }
+.card-snu  .uni-enter { background: var(--ku-gold); color: var(--ink); }
+.card-ku   .uni-enter { background: var(--ku-gold); color: var(--ink); }
+.card-yu   .uni-enter { background: #4A7FD4; color: var(--white); }
+.card-skku .uni-enter { background: var(--skku-green); color: var(--white); }
+
+.landing-footer {
+  margin-top: 2.5rem;
+  color: rgba(255,255,255,0.2);
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+}
+
+/* ═══════════════════════════════════════════
+   CALC PAGE COMMONS
+═══════════════════════════════════════════ */
+.back-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--ink);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.back-bar:hover { background: #2a2420; }
+.back-icon { font-size: 1rem; }
+.back-text {
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.1em;
+}
+
+/* Header variants */
+.calc-header {
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.calc-header::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    45deg, transparent, transparent 20px,
+    rgba(255,255,255,0.025) 20px, rgba(255,255,255,0.025) 21px
+  );
+}
+.header-snu { background: var(--snu-red); }
+.header-ku  { background: var(--ku-crimson); }
+.header-yu  { background: var(--yu-blue); }
+.header-skku { background: var(--skku-dark); }
+
+.header-badge {
+  display: inline-block;
+  border: 1.5px solid var(--ku-gold);
+  color: var(--ku-gold);
+  font-size: 0.7rem;
+  letter-spacing: 0.25em;
+  padding: 0.3rem 1rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+.header-yu .header-badge { border-color: #7AA8E8; color: #7AA8E8; }
+.header-skku .header-badge { border-color: #a8d4a0; color: #a8d4a0; }
+
+.calc-header h1 {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: 1.9rem;
+  color: var(--white);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.calc-header h1 span { color: var(--ku-gold-l); }
+.header-yu h1 span { color: #90b8ff; }
+.header-skku h1 span { color: #a8d4a0; }
+.calc-header p {
+  color: rgba(255,255,255,0.6);
+  font-size: 0.82rem;
+  margin-top: 0.5rem;
+  letter-spacing: 0.05em;
+}
+
+/* Container */
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* Step labels */
+.step-label {
+  display: flex; align-items: center; gap: 0.75rem;
+  margin-bottom: 1rem; margin-top: 2rem;
+}
+.step-num {
+  width: 28px; height: 28px;
+  color: white; font-size: 0.75rem; font-weight: 700;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.snu-accent .step-num { background: var(--snu-red); }
+.ku-accent  .step-num { background: var(--ku-crimson); }
+.yu-accent  .step-num { background: var(--yu-blue); }
+.skku-accent .step-num { background: var(--skku-green); }
+
+.step-title {
+  font-family: 'Nanum Myeongjo', serif;
+  font-size: 1.05rem; font-weight: 700; color: var(--ink);
+}
+.step-sub { font-size: 0.78rem; color: var(--muted); margin-left: auto; }
+
+/* Cards */
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+}
+
+/* Select / Input */
+select, input[type="number"] {
+  width: 100%;
+  padding: 0.6rem 0.9rem;
+  border: 1.5px solid var(--line);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Pretendard', sans-serif;
+  font-size: 0.9rem;
+  appearance: none; -webkit-appearance: none;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.snu-accent select:focus, .snu-accent input:focus { border-color: var(--snu-red); background: var(--white); }
+.ku-accent  select:focus, .ku-accent  input:focus { border-color: var(--ku-crimson); background: var(--white); }
+.yu-accent  select:focus, .yu-accent  input:focus { border-color: var(--yu-blue); background: var(--white); }
+.skku-accent select:focus, .skku-accent input:focus { border-color: var(--skku-green); background: var(--white); }
+
+.select-wrap { position: relative; }
+.select-wrap::after {
+  content: '▾'; position: absolute; right: 0.8rem; top: 50%;
+  transform: translateY(-50%); color: var(--muted); font-size: 0.8rem; pointer-events: none;
+}
+
+.score-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: 1rem;
+}
+.score-field label {
+  display: block; font-size: 0.78rem; font-weight: 600;
+  color: var(--muted); letter-spacing: 0.03em; margin-bottom: 0.35rem;
+}
+.score-field label .req { color: var(--snu-red); }
+.score-field input[type="number"] {
+  text-align: center; font-size: 1rem; font-weight: 600;
+}
+.score-field .hint { font-size: 0.7rem; color: var(--muted); margin-top: 0.25rem; }
+
+.grade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+.penalty-table {
+  width: 100%; font-size: 0.75rem; border-collapse: collapse; margin-top: 0.5rem;
+}
+.penalty-table th {
+  background: var(--paper-warm); padding: 0.35rem 0.5rem; text-align: center;
+  font-weight: 600; color: var(--muted); border: 1px solid var(--line);
+  font-size: 0.7rem; letter-spacing: 0.04em;
+}
+.penalty-table td {
+  padding: 0.3rem 0.5rem; text-align: center;
+  border: 1px solid var(--line); color: var(--ink);
+}
+.penalty-table td.neg { color: var(--snu-red); font-weight: 600; }
+
+.info-box {
+  background: var(--paper-warm);
+  border-left: 3px solid var(--ku-gold);
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem; color: var(--muted);
+  border-radius: 0 3px 3px 0; line-height: 1.7; margin-top: 0.75rem;
+}
+
+/* Buttons */
+.btn-calc {
+  width: 100%; padding: 1rem;
+  color: white;
+  font-family: 'Nanum Myeongjo', serif; font-size: 1.1rem; font-weight: 700;
+  letter-spacing: 0.08em; border: none; border-radius: 4px;
+  cursor: pointer; margin-top: 1.5rem;
+  transition: filter 0.2s, transform 0.1s;
+}
+.btn-calc:hover { filter: brightness(1.15); transform: translateY(-1px); }
+.btn-calc:active { transform: translateY(0); }
+.snu-accent .btn-calc { background: var(--snu-red); box-shadow: 0 4px 16px rgba(139,0,0,0.3); }
+.ku-accent  .btn-calc { background: var(--ku-crimson); box-shadow: 0 4px 16px rgba(80,0,0,0.3); }
+.yu-accent  .btn-calc { background: var(--yu-blue); box-shadow: 0 4px 16px rgba(0,32,92,0.3); }
+.skku-accent .btn-calc { background: var(--skku-green); box-shadow: 0 4px 16px rgba(45,85,39,0.3); }
+
+/* Result */
+.result-panel { display: none; margin-top: 1.5rem; }
+.result-panel.show { display: block; animation: fadeUp 0.4s ease; }
+
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(16px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.result-card {
+  background: var(--ink);
+  border-radius: 6px; padding: 2rem; color: var(--white);
+  text-align: center; position: relative; overflow: hidden;
+}
+.result-card::before {
+  content: ''; position: absolute; inset: 0;
+}
+.snu-accent .result-card::before { background: radial-gradient(ellipse at 20% 50%, rgba(139,0,0,0.5), transparent 60%); }
+.ku-accent  .result-card::before { background: radial-gradient(ellipse at 20% 50%, rgba(80,0,0,0.5), transparent 60%); }
+.yu-accent  .result-card::before { background: radial-gradient(ellipse at 20% 50%, rgba(0,32,92,0.6), transparent 60%); }
+.skku-accent .result-card::before { background: radial-gradient(ellipse at 20% 50%, rgba(45,85,39,0.5), transparent 60%); }
+
+.result-title {
+  font-family: 'Nanum Myeongjo', serif; font-size: 0.85rem;
+  letter-spacing: 0.2em; color: var(--ku-gold-l); margin-bottom: 0.5rem; position: relative;
+}
+.yu-accent .result-title { color: #90b8ff; }
+.skku-accent .result-title { color: #a8d4a0; }
+.result-score {
+  font-family: 'Nanum Myeongjo', serif; font-size: 3.5rem;
+  font-weight: 800; color: var(--white); position: relative; line-height: 1.1;
+}
+.result-score small {
+  font-size: 1rem; color: rgba(255,255,255,0.45);
+  font-weight: 400; font-family: 'Pretendard', sans-serif;
+}
+
+/* Breakdown */
+.breakdown {
+  background: var(--white); border: 1px solid var(--line);
+  border-radius: 4px; margin-top: 1rem; overflow: hidden;
+}
+.breakdown-row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  padding: 0.75rem 1.25rem; border-bottom: 1px solid var(--line);
+  font-size: 0.85rem; align-items: center; gap: 1rem;
+}
+.breakdown-row:last-child { border-bottom: none; }
+.breakdown-row.total { background: var(--paper-warm); font-weight: 700; font-family: 'Nanum Myeongjo', serif; }
+.breakdown-row .raw { color: var(--muted); font-size: 0.78rem; text-align: right; }
+.breakdown-row .value { font-weight: 600; text-align: right; min-width: 70px; }
+.breakdown-row .value.neg { color: var(--snu-red); }
+.breakdown-row .value.pos { color: var(--score-good); }
+
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--line), transparent);
+  margin: 1.5rem 0;
+}
+
+.toggle-tip {
+  font-size: 0.75rem; color: var(--snu-red);
+  cursor: pointer; text-decoration: underline dotted;
+  display: inline-block; margin-top: 0.4rem;
+}
+.yu-accent .toggle-tip { color: var(--yu-blue); }
+.ku-accent .toggle-tip { color: var(--ku-crimson); }
+.skku-accent .toggle-tip { color: var(--skku-green); }
+.tip-content { display: none; margin-top: 0.5rem; }
+.tip-content.open { display: block; }
+
+/* KU / YU specific */
+.notice-box {
+  background: var(--paper-warm);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 0.75rem 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+}
+.notice-box strong { color: var(--ink); }
+
+/* KU 수능 계열 탭 */
+.tab-row {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem;
+}
+.tab-btn {
+  padding: 0.45rem 1rem;
+  border: 1.5px solid var(--line);
+  background: var(--paper);
+  border-radius: 3px;
+  font-size: 0.78rem; font-weight: 600; cursor: pointer;
+  color: var(--muted); transition: all 0.2s;
+  font-family: 'Pretendard', sans-serif;
+}
+.tab-btn.active-snu { background: var(--snu-red); border-color: var(--snu-red); color: white; }
+.tab-btn.active-ku  { background: var(--ku-crimson); border-color: var(--ku-crimson); color: white; }
+.tab-btn.active-yu  { background: var(--yu-blue); border-color: var(--yu-blue); color: white; }
+.tab-btn.active-skku { background: var(--skku-green); border-color: var(--skku-green); color: white; }
+
+@media (max-width: 900px) {
+  .uni-cards { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 640px) {
+  .uni-cards { grid-template-columns: 1fr !important; }
+  .score-grid { grid-template-columns: 1fr 1fr; }
+  .grade-grid { grid-template-columns: 1fr; }
+  .result-score { font-size: 2.8rem; }
+  .landing-title { font-size: 2rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LANDING ═══════════════ -->
+<div id="landing" class="page active">
+  <div class="landing-inner">
+    <div class="landing-eyebrow">
+      2027학년도 <span>·</span> 정시모집 <span>·</span> 수능위주전형
+    </div>
+    <h1 class="landing-title">SKY+성균<br><em>점수 계산기</em></h1>
+    <p class="landing-sub">서울대 · 고려대 · 연세대 · 성균관대 수능 환산점수 계산</p>
+
+    <div class="uni-cards" style="grid-template-columns: repeat(4, 1fr);">
+      <!-- SNU -->
+      <div class="uni-card card-snu" onclick="goTo('snu')">
+        <div class="uni-badge">Seoul National</div>
+        <div class="uni-name">서울대학교</div>
+        <div class="uni-eng">SNU</div>
+        <div class="uni-tags">
+          <span class="uni-tag">유형 ① 인문</span>
+          <span class="uni-tag">유형 ② 이공</span>
+          <span class="uni-tag">유형 ③ 기타</span>
+          <span class="uni-tag">제2외국어</span>
+          <span class="uni-tag">과탐 조정</span>
+        </div>
+        <button class="uni-enter">계산하러 가기 →</button>
+      </div>
+
+      <!-- KU -->
+      <div class="uni-card card-ku" onclick="goTo('ku')">
+        <div class="uni-badge">Korea University</div>
+        <div class="uni-name">고려대학교</div>
+        <div class="uni-eng">KU</div>
+        <div class="uni-tags">
+          <span class="uni-tag">인문계열</span>
+          <span class="uni-tag">자연/의학계열</span>
+          <span class="uni-tag">교과우수전형</span>
+          <span class="uni-tag">영어 감점</span>
+        </div>
+        <button class="uni-enter">계산하러 가기 →</button>
+      </div>
+
+      <!-- YU -->
+      <div class="uni-card card-yu" onclick="goTo('yu')">
+        <div class="uni-badge">Yonsei University</div>
+        <div class="uni-name">연세대학교</div>
+        <div class="uni-eng">YU</div>
+        <div class="uni-tags">
+          <span class="uni-tag">유형 Ⅰ 인문</span>
+          <span class="uni-tag">유형 Ⅱ 자연</span>
+          <span class="uni-tag">유형 Ⅲ 통합</span>
+          <span class="uni-tag">학생부 반영</span>
+        </div>
+        <button class="uni-enter">계산하러 가기 →</button>
+      </div>
+
+      <!-- SKKU -->
+      <div class="uni-card card-skku" onclick="goTo('skku')">
+        <div class="uni-badge">Sungkyunkwan</div>
+        <div class="uni-name">성균관대학교</div>
+        <div class="uni-eng">SKKU</div>
+        <div class="uni-tags">
+          <span class="uni-tag">가군 인문/자연</span>
+          <span class="uni-tag">나군 인문/이공</span>
+          <span class="uni-tag">다군 글로벌</span>
+          <span class="uni-tag">과탐 가산점</span>
+        </div>
+        <button class="uni-enter">계산하러 가기 →</button>
+      </div>
+    </div>
+
+    <div class="landing-footer">본 계산기는 참고용이며 실제 입시 결과와 다를 수 있습니다</div>
+  </div>
+</div>
+
+<!-- ═══════════════ SNU CALCULATOR ═══════════════ -->
+<div id="snu" class="page snu-accent">
+  <div class="back-bar" onclick="goTo('landing')">
+    <span class="back-icon">←</span>
+    <span class="back-text">SKY 계산기 홈으로</span>
+  </div>
+  <header class="calc-header header-snu">
+    <div class="header-badge">SNU · 2027학년도</div>
+    <h1>서울대학교 <span>정시</span> 점수 계산기</h1>
+    <p>수능위주전형(일반전형) — 전 모집단위</p>
+  </header>
+  <div class="container">
+
+    <div class="step-label">
+      <div class="step-num">1</div>
+      <div class="step-title">모집단위 선택</div>
+      <div class="step-sub">수능 응시유형이 자동 결정됩니다</div>
+    </div>
+    <div class="card">
+      <div class="select-wrap">
+        <select id="snu-dept" onchange="snuOnDeptChange()">
+          <option value="">— 모집단위를 선택하세요 —</option>
+          <optgroup label="인문계열 (유형①)">
+            <option value="hum">인문대학 / 사회과학대학(일부) / 간호대학 / 경영대학 / 농경제사회학부 / 사범대학(인문) / 생활과학대학</option>
+          </optgroup>
+          <optgroup label="이공계열 ②-1 (물리·화학 포함)">
+            <option value="sci1">자연과학대학 물리·천문 / 화학부 / 공과대학(기계·전기·에너지·항공) / 농생명(식물·식동·조경·바이오) / 사범대학(물리·화학·생물) / 의과대학</option>
+          </optgroup>
+          <optgroup label="이공계열 ②-2 (일반 이과)">
+            <option value="sci2">자연과학대학(수리·통계·생명·지구) / 간호대학 / 공과대학(건설·재료·컴퓨터·화생·건축·산업·원자핵·조선) / 농생명(산림·응생·스마트) / 사범대학(수학·지구과학) / 생활과학대학(식품영양·의류) / 수의과대학 / 약학대학 / 첨단융합학부 / 치의학대학원</option>
+          </optgroup>
+          <optgroup label="기타 (유형③)">
+            <option value="etc">학부대학 광역 / 자유전공학부 / 미술대학 / 사범대학 체육교육과</option>
+          </optgroup>
+        </select>
+      </div>
+      <div id="snu-dept-info" class="info-box" style="display:none;"></div>
+    </div>
+
+    <div class="step-label">
+      <div class="step-num">2</div>
+      <div class="step-title">수능 성적 입력</div>
+      <div class="step-sub">표준점수 / 등급 입력</div>
+    </div>
+    <div class="card">
+      <div class="score-grid">
+        <div class="score-field">
+          <label>국어 표준점수 <span class="req">*</span></label>
+          <input type="number" id="snu-kor" min="0" max="200" placeholder="0~200">
+          <div class="hint">표준점수 그대로 입력</div>
+        </div>
+        <div class="score-field">
+          <label>수학 표준점수 <span class="req">*</span></label>
+          <input type="number" id="snu-math" min="0" max="200" placeholder="0~200">
+          <div class="hint" id="snu-math-hint">×1.2 가중 반영</div>
+        </div>
+        <div class="score-field">
+          <label>탐구1 표준점수 <span class="req">*</span></label>
+          <input type="number" id="snu-exp1" min="0" max="100" placeholder="0~100">
+          <div class="hint">과목 표준점수</div>
+        </div>
+        <div class="score-field">
+          <label>탐구2 표준점수 <span class="req">*</span></label>
+          <input type="number" id="snu-exp2" min="0" max="100" placeholder="0~100">
+          <div class="hint">과목 표준점수</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="grade-grid">
+        <div class="score-field">
+          <label>영어 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="snu-eng">
+              <option value="1">1등급</option><option value="2">2등급</option>
+              <option value="3">3등급</option><option value="4">4등급</option>
+              <option value="5">5등급</option><option value="6">6등급</option>
+              <option value="7">7등급</option><option value="8">8등급</option>
+              <option value="9">9등급</option>
+            </select>
+          </div>
+          <div class="hint">1등급 감점 없음</div>
+        </div>
+        <div class="score-field">
+          <label>한국사 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="snu-history">
+              <option value="1">1등급</option><option value="2">2등급</option>
+              <option value="3">3등급</option><option value="4">4등급</option>
+              <option value="5">5등급</option><option value="6">6등급</option>
+              <option value="7">7등급</option><option value="8">8등급</option>
+              <option value="9">9등급</option>
+            </select>
+          </div>
+          <div class="hint">3등급 이내 감점 없음</div>
+        </div>
+      </div>
+      <div id="snu-lang-row" class="score-field" style="display:none; margin-top:1rem;">
+        <label>제2외국어/한문 등급 <span class="req">*</span></label>
+        <div class="select-wrap">
+          <select id="snu-lang">
+            <option value="1">1등급</option><option value="2">2등급</option>
+            <option value="3">3등급</option><option value="4">4등급</option>
+            <option value="5">5등급</option><option value="6">6등급</option>
+            <option value="7">7등급</option><option value="8">8등급</option>
+            <option value="9">9등급</option>
+          </select>
+        </div>
+        <div class="hint">2등급 이내 감점 없음 (인문계열 필수)</div>
+      </div>
+      <div id="snu-sci-combo-row" style="display:none; margin-top:1rem;">
+        <div class="score-field">
+          <label>과학탐구 응시 조합</label>
+          <div class="select-wrap">
+            <select id="snu-sci-combo">
+              <option value="II">Ⅰ+Ⅰ (조정점수 없음)</option>
+              <option value="IiII">Ⅰ+Ⅱ (+3점)</option>
+              <option value="IIII">Ⅱ+Ⅱ (+5점)</option>
+            </select>
+          </div>
+          <div class="hint">과탐Ⅱ 선택 시 조정점수 부여 (정시)</div>
+        </div>
+      </div>
+      <span class="toggle-tip" onclick="snuTogglePenalty()">▸ 영어·한국사·제2외국어 감점 기준 보기</span>
+      <div id="snu-penalty-tip" class="tip-content">
+        <table class="penalty-table">
+          <thead><tr><th>등급</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr></thead>
+          <tbody>
+            <tr><td>영어</td><td>0</td><td class="neg">-0.5</td><td class="neg">-2.0</td><td class="neg">-4.0</td><td class="neg">-6.0</td><td class="neg">-8.0</td><td class="neg">-10.0</td><td class="neg">-12.0</td><td class="neg">-14.0</td></tr>
+            <tr><td>한국사</td><td>0</td><td>0</td><td>0</td><td class="neg">-0.4</td><td class="neg">-0.8</td><td class="neg">-1.2</td><td class="neg">-1.6</td><td class="neg">-2.0</td><td class="neg">-2.4</td></tr>
+            <tr><td>제2외국어</td><td>0</td><td>0</td><td class="neg">-0.5</td><td class="neg">-1.0</td><td class="neg">-1.5</td><td class="neg">-2.0</td><td class="neg">-2.5</td><td class="neg">-3.0</td><td class="neg">-3.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <button class="btn-calc" onclick="snuCalculate()">✦ 수능 점수 계산하기</button>
+
+    <div class="result-panel" id="snu-result">
+      <div class="step-label" style="margin-top:0;">
+        <div class="step-num">3</div>
+        <div class="step-title">계산 결과</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">수능 환산 점수 (1단계)</div>
+        <div class="result-score" id="snu-result-total">—<small> / 기준점</small></div>
+        <div style="font-size:0.75rem; color:rgba(255,255,255,0.4); margin-top:0.5rem; position:relative;">실제 환산점수는 지원 모집단위 합격자 성적 분포에 따라 달라집니다</div>
+      </div>
+      <div class="breakdown" id="snu-breakdown"></div>
+      <div class="info-box" style="margin-top:1rem;">
+        <strong>주의사항</strong><br>
+        · 이 계산기는 <em>1단계 수능 점수 원점수 합산</em>을 보여줍니다.<br>
+        · 정시 일반전형(미술·음악·사범 체육 제외) 2단계: 1단계 성적 80점 + 교과평가 20점 합산.<br>
+        · 교과평가는 이 계산기에 포함되지 않습니다.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ KU CALCULATOR ═══════════════ -->
+<div id="ku" class="page ku-accent">
+  <div class="back-bar" onclick="goTo('landing')">
+    <span class="back-icon">←</span>
+    <span class="back-text">SKY 계산기 홈으로</span>
+  </div>
+  <header class="calc-header header-ku">
+    <div class="header-badge">KU · 2027학년도</div>
+    <h1>고려대학교 <span>정시</span> 점수 계산기</h1>
+    <p>수능위주전형 — 일반전형 / 교과우수전형</p>
+  </header>
+  <div class="container">
+
+    <div class="notice-box">
+      <strong>고려대 정시 수능 반영 방식</strong><br>
+      국어·수학·탐구 = <strong>표준점수</strong> 반영 / 영어·한국사 = <strong>등급별 감점</strong> 적용<br>
+      자연/의학계열(가정교육과·간호대 제외): 국어 200 + 수학 <strong>240</strong> + 탐구 200 / 인문: 국어 200 + 수학 200 + 탐구 160
+    </div>
+
+    <div class="step-label">
+      <div class="step-num">1</div>
+      <div class="step-title">전형 및 계열 선택</div>
+    </div>
+    <div class="card">
+      <div style="margin-bottom:0.75rem;">
+        <div style="font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:0.5rem;">전형 선택</div>
+        <div class="tab-row">
+          <button class="tab-btn active-ku" id="ku-tab-gen" onclick="kuSelectType('gen')">일반전형</button>
+          <button class="tab-btn" id="ku-tab-edu" onclick="kuSelectType('edu')">교과우수전형 (수능 80% + 학생부 20%)</button>
+        </div>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <div style="font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:0.5rem;">계열 선택</div>
+        <div class="tab-row">
+          <button class="tab-btn active-ku" id="ku-tab-hum" onclick="kuSelectSeries('hum')">인문계열</button>
+          <button class="tab-btn" id="ku-tab-sci" onclick="kuSelectSeries('sci')">자연계열 (수학 ×1.2 반영)</button>
+          <button class="tab-btn" id="ku-tab-med" onclick="kuSelectSeries('med')">의학계열 (수학 ×1.2 반영)</button>
+          <button class="tab-btn" id="ku-tab-nur" onclick="kuSelectSeries('nur')">가정교육/간호대</button>
+        </div>
+      </div>
+      <div id="ku-series-info" class="info-box" style="margin-top:0.75rem; display:none;"></div>
+    </div>
+
+    <div class="step-label">
+      <div class="step-num">2</div>
+      <div class="step-title">수능 성적 입력</div>
+    </div>
+    <div class="card">
+      <div class="score-grid">
+        <div class="score-field">
+          <label>국어 표준점수 <span class="req">*</span></label>
+          <input type="number" id="ku-kor" min="0" max="200" placeholder="0~200">
+          <div class="hint">200점 만점 반영</div>
+        </div>
+        <div class="score-field">
+          <label>수학 표준점수 <span class="req">*</span></label>
+          <input type="number" id="ku-math" min="0" max="200" placeholder="0~200">
+          <div class="hint" id="ku-math-hint">인문: 200 / 자연·의학: ×240 반영</div>
+        </div>
+        <div class="score-field">
+          <label>탐구1 표준점수 <span class="req">*</span></label>
+          <input type="number" id="ku-exp1" min="0" max="100" placeholder="0~100">
+          <div class="hint">변환점수 반영</div>
+        </div>
+        <div class="score-field">
+          <label>탐구2 표준점수 <span class="req">*</span></label>
+          <input type="number" id="ku-exp2" min="0" max="100" placeholder="0~100">
+          <div class="hint">변환점수 반영</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="grade-grid">
+        <div class="score-field">
+          <label>영어 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="ku-eng">
+              <option value="1">1등급 (감점 없음)</option><option value="2">2등급 (-3점)</option>
+              <option value="3">3등급 (-6점)</option><option value="4">4등급 (-9점)</option>
+              <option value="5">5등급 (-12점)</option><option value="6">6등급 (-15점)</option>
+              <option value="7">7등급 (-18점)</option><option value="8">8등급 (-21점)</option>
+              <option value="9">9등급 (-24점)</option>
+            </select>
+          </div>
+        </div>
+        <div class="score-field">
+          <label>한국사 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="ku-history">
+              <option value="1">1등급</option><option value="2">2등급</option>
+              <option value="3">3등급</option><option value="4">4등급 (-0.2)</option>
+              <option value="5">5등급 (-0.4)</option><option value="6">6등급 (-0.6)</option>
+              <option value="7">7등급 (-0.8)</option><option value="8">8등급 (-0.8)</option>
+              <option value="9">9등급 (-2.0)</option>
+            </select>
+          </div>
+          <div class="hint">4등급 이내 거의 감점 없음</div>
+        </div>
+      </div>
+      <!-- 과탐 가산점 (자연/의학) -->
+      <div id="ku-sci-bonus-row" style="display:none; margin-top:1rem;">
+        <div class="score-field">
+          <label>과학탐구 응시 가산점</label>
+          <div class="select-wrap">
+            <select id="ku-sci-bonus">
+              <option value="0">없음 (사회탐구 또는 혼합)</option>
+              <option value="3">과학탐구 응시 (각 과목 +3% 가산)</option>
+            </select>
+          </div>
+          <div class="hint">자연/의학계열 과탐 응시 시 변환점수에 3% 가산</div>
+        </div>
+      </div>
+      <!-- 학생부 (교과우수전형) -->
+      <div id="ku-hakbu-row" style="display:none; margin-top:1rem;">
+        <div class="score-field">
+          <label>학생부 교과 반영 점수 (100점 만점)</label>
+          <input type="number" id="ku-hakbu" min="0" max="100" placeholder="예: 97.5">
+          <div class="hint">교과우수전형: 수능 80% + 학생부(교과) 20%</div>
+        </div>
+      </div>
+      <span class="toggle-tip" onclick="kuTogglePenalty()">▸ 영어·한국사 감점 기준 보기</span>
+      <div id="ku-penalty-tip" class="tip-content">
+        <table class="penalty-table">
+          <thead><tr><th>등급</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr></thead>
+          <tbody>
+            <tr><td>영어</td><td>0</td><td class="neg">-3</td><td class="neg">-6</td><td class="neg">-9</td><td class="neg">-12</td><td class="neg">-15</td><td class="neg">-18</td><td class="neg">-21</td><td class="neg">-24</td></tr>
+            <tr><td>한국사</td><td>0</td><td>0</td><td>0</td><td class="neg">-0.2</td><td class="neg">-0.4</td><td class="neg">-0.6</td><td class="neg">-0.8</td><td class="neg">-0.8</td><td class="neg">-2.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <button class="btn-calc" onclick="kuCalculate()">✦ 수능 점수 계산하기</button>
+
+    <div class="result-panel" id="ku-result">
+      <div class="step-label" style="margin-top:0;">
+        <div class="step-num">3</div>
+        <div class="step-title">계산 결과</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title" id="ku-result-label">수능 환산 점수</div>
+        <div class="result-score" id="ku-result-total">—</div>
+        <div style="font-size:0.75rem; color:rgba(255,255,255,0.4); margin-top:0.5rem; position:relative;">실제 합격선은 모집단위·연도별 편차가 있습니다</div>
+      </div>
+      <div class="breakdown" id="ku-breakdown"></div>
+      <div class="info-box" style="margin-top:1rem;">
+        <strong>주의사항</strong><br>
+        · 탐구 점수는 실제 입시에서 고려대가 백분위 기반 <em>변환점수</em>로 계산합니다. 여기서는 입력한 표준점수 그대로 반영합니다.<br>
+        · 교과우수전형 학생부(교과) 점수 산출 공식: 교과평균등급점수 + 100 (최대 200점)
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ YU CALCULATOR ═══════════════ -->
+<div id="yu" class="page yu-accent">
+  <div class="back-bar" onclick="goTo('landing')">
+    <span class="back-icon">←</span>
+    <span class="back-text">SKY 계산기 홈으로</span>
+  </div>
+  <header class="calc-header header-yu">
+    <div class="header-badge">YU · 2027학년도</div>
+    <h1>연세대학교 <span>정시</span> 점수 계산기</h1>
+    <p>수능위주전형 — 일반전형 / 고른기회전형</p>
+  </header>
+  <div class="container">
+
+    <div class="notice-box">
+      <strong>연세대 정시 수능 반영 방식</strong><br>
+      유형별 반영 비율이 다릅니다. 국어·수학·탐구 = <strong>표준점수 변환</strong> 반영 / 영어 = <strong>등급별 점수</strong> 반영 / 한국사 = 감점 적용<br>
+      최종 점수 = 수능 950점 + 학생부(교과) 50점 (일반전형 기준)
+    </div>
+
+    <div class="step-label">
+      <div class="step-num">1</div>
+      <div class="step-title">수능 유형 선택</div>
+    </div>
+    <div class="card">
+      <div class="tab-row">
+        <button class="tab-btn active-yu" id="yu-tab-1" onclick="yuSelectType('1')">유형 Ⅰ — 인문 (경영·신학·사회과학·교육학부)</button>
+        <button class="tab-btn" id="yu-tab-2" onclick="yuSelectType('2')">유형 Ⅱ — 자연 (이공·의·치·약·생명)</button>
+        <button class="tab-btn" id="yu-tab-3" onclick="yuSelectType('3')">유형 Ⅲ — 통합 (상경·생활과학·간호·체능·국제)</button>
+      </div>
+      <div id="yu-type-info" class="info-box" style="margin-top:0.75rem;">
+        <strong>유형 Ⅰ (인문)</strong> — 국어(300)·수학(200)·탐구(200)·영어(100) 반영. 국어 표준점수 ×1.5 반영. 사탐/과탐 모두 인정, 과탐 응시 시 +3% 가산.
+      </div>
+    </div>
+
+    <div class="step-label">
+      <div class="step-num">2</div>
+      <div class="step-title">수능 성적 입력</div>
+    </div>
+    <div class="card">
+      <div class="score-grid">
+        <div class="score-field">
+          <label>국어 표준점수 <span class="req">*</span></label>
+          <input type="number" id="yu-kor" min="0" max="200" placeholder="0~200">
+          <div class="hint" id="yu-kor-hint">유형Ⅰ: ×1.5 반영 (300점)</div>
+        </div>
+        <div class="score-field" id="yu-math-field">
+          <label>수학 표준점수 <span class="req">*</span></label>
+          <input type="number" id="yu-math" min="0" max="200" placeholder="0~200">
+          <div class="hint" id="yu-math-hint">유형Ⅰ: 200점 / 유형Ⅱ: ×1.5 반영 (300점)</div>
+        </div>
+        <div class="score-field">
+          <label>탐구1 표준점수 <span class="req">*</span></label>
+          <input type="number" id="yu-exp1" min="0" max="100" placeholder="0~100">
+          <div class="hint">표준점수 입력</div>
+        </div>
+        <div class="score-field">
+          <label>탐구2 표준점수 <span class="req">*</span></label>
+          <input type="number" id="yu-exp2" min="0" max="100" placeholder="0~100">
+          <div class="hint">표준점수 입력</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="grade-grid">
+        <div class="score-field">
+          <label>영어 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="yu-eng">
+              <option value="100">1등급 (100점)</option>
+              <option value="95">2등급 (95점)</option>
+              <option value="87.5">3등급 (87.5점)</option>
+              <option value="75">4등급 (75점)</option>
+              <option value="60">5등급 (60점)</option>
+              <option value="40">6등급 (40점)</option>
+              <option value="25">7등급 (25점)</option>
+              <option value="12.5">8등급 (12.5점)</option>
+              <option value="5">9등급 (5점)</option>
+            </select>
+          </div>
+          <div class="hint">감점 아닌 등급별 점수 부여</div>
+        </div>
+        <div class="score-field">
+          <label>한국사 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="yu-history">
+              <option value="0">1등급 (감점없음)</option>
+              <option value="0">2등급 (감점없음)</option>
+              <option value="0">3등급 (감점없음)</option>
+              <option value="0">4등급 (감점없음)</option>
+              <option value="0.2">5등급 (-0.2)</option>
+              <option value="0.4">6등급 (-0.4)</option>
+              <option value="0.6">7등급 (-0.6)</option>
+              <option value="0.8">8등급 (-0.8)</option>
+              <option value="1.0">9등급 (-1.0)</option>
+            </select>
+          </div>
+          <div class="hint">4등급 이내 감점 없음</div>
+        </div>
+      </div>
+      <!-- 과탐 가산점 -->
+      <div id="yu-sci-row" style="margin-top:1rem;">
+        <div class="score-field">
+          <label>탐구 응시 유형</label>
+          <div class="select-wrap">
+            <select id="yu-tangu-type">
+              <option value="0">사회탐구 응시 (가산 없음)</option>
+              <option value="3">과학탐구 응시 (각 과목 +3% 가산) — 유형Ⅰ</option>
+              <option value="3sci">과학탐구 응시 (각 과목 +3% 가산) — 유형Ⅱ</option>
+            </select>
+          </div>
+          <div class="hint">유형별 가산점 조건 다름</div>
+        </div>
+      </div>
+      <!-- 학생부 -->
+      <div style="margin-top:1rem;">
+        <div class="score-field">
+          <label>학생부(교과) 점수 (50점 만점, 선택입력)</label>
+          <input type="number" id="yu-hakbu" min="0" max="50" placeholder="0~50 (미입력 시 최대 50점 가정)">
+          <div class="hint">기본 40점 + 반영과목 점수 합산 (추후 확인 권장)</div>
+        </div>
+      </div>
+      <span class="toggle-tip" onclick="yuTogglePenalty()">▸ 영어 등급별 점수 / 한국사 감점 기준 보기</span>
+      <div id="yu-penalty-tip" class="tip-content">
+        <table class="penalty-table">
+          <thead><tr><th>등급</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr></thead>
+          <tbody>
+            <tr><td>영어(점수)</td><td>100</td><td>95</td><td>87.5</td><td>75</td><td>60</td><td>40</td><td>25</td><td>12.5</td><td>5</td></tr>
+            <tr><td>한국사(감점)</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="neg">-0.2</td><td class="neg">-0.4</td><td class="neg">-0.6</td><td class="neg">-0.8</td><td class="neg">-1.0</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <button class="btn-calc" onclick="yuCalculate()">✦ 수능 점수 계산하기</button>
+
+    <div class="result-panel" id="yu-result">
+      <div class="step-label" style="margin-top:0;">
+        <div class="step-num">3</div>
+        <div class="step-title">계산 결과</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title">수능 환산 점수 (총점 1,000점)</div>
+        <div class="result-score" id="yu-result-total">—</div>
+        <div style="font-size:0.75rem; color:rgba(255,255,255,0.4); margin-top:0.5rem; position:relative;">실제 합격선은 모집단위별 편차가 있습니다</div>
+      </div>
+      <div class="breakdown" id="yu-breakdown"></div>
+      <div class="info-box" style="margin-top:1rem;">
+        <strong>주의사항</strong><br>
+        · 연세대 수능 점수는 표준점수를 실제로는 <em>백분위 기반 변환점수</em>로 처리합니다. 여기서는 표준점수를 비율 변환으로 계산합니다.<br>
+        · 의예과는 단계별 전형 (1단계 통과 후 면접 50점 추가).<br>
+        · 총점 = 수능 950점 + 학생부(교과) 50점. 학생부 미입력 시 50점으로 계산합니다.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ SKKU CALCULATOR ═══════════════ -->
+<div id="skku" class="page skku-accent">
+  <div class="back-bar" onclick="goTo('landing')">
+    <span class="back-icon">←</span>
+    <span class="back-text">SKY+성균 계산기 홈으로</span>
+  </div>
+  <header class="calc-header header-skku">
+    <div class="header-badge">SKKU · 2027학년도</div>
+    <h1>성균관대학교 <span>정시</span> 점수 계산기</h1>
+    <p>수능위주 일반전형 — 가/나/다 군</p>
+  </header>
+  <div class="container">
+
+    <div class="notice-box">
+      <strong>성균관대 정시 수능 반영 방식</strong><br>
+      가·다군: <strong>표준점수</strong> 반영 / 나군: <strong>백분위</strong> 반영 / 영어·한국사 = <strong>등급별 감점</strong> 적용<br>
+      계열·모집군에 따라 영역별 비율이 다릅니다. 과학탐구 응시 시 최대 5% 가산점 부여 가능.
+    </div>
+
+    <div class="step-label">
+      <div class="step-num">1</div>
+      <div class="step-title">모집군 및 모집단위 선택</div>
+    </div>
+    <div class="card">
+      <div style="margin-bottom:0.75rem;">
+        <div style="font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:0.5rem;">모집군 선택</div>
+        <div class="tab-row">
+          <button class="tab-btn active-skku" id="skku-tab-ga" onclick="skkuSelectGun('ga')">가 군</button>
+          <button class="tab-btn" id="skku-tab-na" onclick="skkuSelectGun('na')">나 군</button>
+          <button class="tab-btn" id="skku-tab-da" onclick="skkuSelectGun('da')">다 군</button>
+        </div>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <div style="font-size:0.78rem; font-weight:600; color:var(--muted); margin-bottom:0.5rem;">모집단위 선택</div>
+        <div class="select-wrap">
+          <select id="skku-dept" onchange="skkuOnDeptChange()">
+            <option value="">— 모집단위를 선택하세요 —</option>
+          </select>
+        </div>
+      </div>
+      <div id="skku-dept-info" class="info-box" style="margin-top:0.75rem; display:none;"></div>
+    </div>
+
+    <div class="step-label">
+      <div class="step-num">2</div>
+      <div class="step-title">수능 성적 입력</div>
+      <div class="step-sub" id="skku-score-hint">표준점수 입력</div>
+    </div>
+    <div class="card">
+      <div class="score-grid">
+        <div class="score-field" id="skku-kor-field">
+          <label>국어 <span class="req">*</span></label>
+          <input type="number" id="skku-kor" min="0" max="200" placeholder="표준점수">
+          <div class="hint" id="skku-kor-hint">표준점수</div>
+        </div>
+        <div class="score-field" id="skku-math-field">
+          <label>수학 <span class="req">*</span></label>
+          <input type="number" id="skku-math" min="0" max="200" placeholder="표준점수">
+          <div class="hint" id="skku-math-hint">표준점수</div>
+        </div>
+        <div class="score-field" id="skku-exp1-field">
+          <label>탐구1 <span class="req">*</span></label>
+          <input type="number" id="skku-exp1" min="0" max="100" placeholder="0~100">
+          <div class="hint" id="skku-exp1-hint">표준점수(가·다군) / 백분위(나군)</div>
+        </div>
+        <div class="score-field" id="skku-exp2-field">
+          <label>탐구2</label>
+          <input type="number" id="skku-exp2" min="0" max="100" placeholder="0~100">
+          <div class="hint" id="skku-exp2-hint">해당 없으면 0 입력</div>
+        </div>
+      </div>
+      <div class="divider"></div>
+      <div class="grade-grid">
+        <div class="score-field">
+          <label>영어 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="skku-eng">
+              <option value="1">1등급 (감점 없음)</option>
+              <option value="2">2등급</option>
+              <option value="3">3등급</option>
+              <option value="4">4등급</option>
+              <option value="5">5등급 (-1점)</option>
+              <option value="6">6등급 (-2점)</option>
+              <option value="7">7등급 (-5점)</option>
+              <option value="8">8등급 (-10점)</option>
+              <option value="9">9등급 (-20점)</option>
+            </select>
+          </div>
+          <div class="hint">5등급부터 감점 적용</div>
+        </div>
+        <div class="score-field">
+          <label>한국사 등급 <span class="req">*</span></label>
+          <div class="select-wrap">
+            <select id="skku-history">
+              <option value="1">1등급 (감점 없음)</option>
+              <option value="2">2등급</option>
+              <option value="3">3등급</option>
+              <option value="4">4등급</option>
+              <option value="5">5등급 (-1점)</option>
+              <option value="6">6등급 (-2점)</option>
+              <option value="7">7등급 (-5점)</option>
+              <option value="8">8등급 (-10점)</option>
+              <option value="9">9등급 (-20점)</option>
+            </select>
+          </div>
+          <div class="hint">5등급부터 감점 적용</div>
+        </div>
+      </div>
+      <!-- 과탐 가산점 -->
+      <div style="margin-top:1rem;">
+        <div class="score-field">
+          <label>과학탐구 응시 가산점</label>
+          <div class="select-wrap">
+            <select id="skku-sci-bonus">
+              <option value="0">없음 (사탐/기타)</option>
+              <option value="5">과학탐구 응시 (최대 5% 가산)</option>
+            </select>
+          </div>
+          <div class="hint">과탐 응시자에게 탐구 변환점수의 최대 5% 가산 (모집단위별 적용 여부 상이)</div>
+        </div>
+      </div>
+      <span class="toggle-tip" onclick="skkuTogglePenalty()">▸ 영어·한국사 감점 기준 보기</span>
+      <div id="skku-penalty-tip" class="tip-content">
+        <table class="penalty-table">
+          <thead><tr><th>등급</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th><th>7</th><th>8</th><th>9</th></tr></thead>
+          <tbody>
+            <tr><td>영어(감점)</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="neg">-1</td><td class="neg">-2</td><td class="neg">-5</td><td class="neg">-10</td><td class="neg">-20</td></tr>
+            <tr><td>한국사(감점)</td><td>0</td><td>0</td><td>0</td><td>0</td><td class="neg">-1</td><td class="neg">-2</td><td class="neg">-5</td><td class="neg">-10</td><td class="neg">-20</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <button class="btn-calc" onclick="skkuCalculate()">✦ 수능 점수 계산하기</button>
+
+    <div class="result-panel" id="skku-result">
+      <div class="step-label" style="margin-top:0;">
+        <div class="step-num">3</div>
+        <div class="step-title">계산 결과</div>
+      </div>
+      <div class="result-card">
+        <div class="result-title" id="skku-result-label">수능 환산 점수</div>
+        <div class="result-score" id="skku-result-total">—</div>
+        <div style="font-size:0.75rem; color:rgba(255,255,255,0.4); margin-top:0.5rem; position:relative;">실제 합격선은 모집단위·연도별 편차가 있습니다</div>
+      </div>
+      <div class="breakdown" id="skku-breakdown"></div>
+      <div class="info-box" style="margin-top:1rem;">
+        <strong>주의사항</strong><br>
+        · 가·다군은 표준점수, 나군은 백분위 기반 점수를 반영합니다. 나군 입력 시 백분위를 입력하세요.<br>
+        · 탐구 영역은 실제 입시에서 백분위 기반 <em>자체 변환점수</em>로 처리됩니다.<br>
+        · 과탐 가산점(최대 5%)은 모집단위별로 적용 여부가 다릅니다. 해당 모집단위 확인 필수.<br>
+        · 미적분 선택 가산점(최대 3%)이 일부 모집단위에 적용될 수 있습니다 (이 계산기에 미포함).
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script>
+// ─── 페이지 전환 ──────────────────────────────────────────
+function goTo(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+
+// ══════════════════════════════════════════════════════════
+// SNU
+// ══════════════════════════════════════════════════════════
+const SNU_ENG_PEN  = [0, 0.5, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0];
+const SNU_HIST_PEN = [0,   0,   0, 0.4, 0.8,  1.2,  1.6,  2.0,  2.4];
+const SNU_LANG_PEN = [0,   0, 0.5, 1.0, 1.5,  2.0,  2.5,  3.0,  3.5];
+const SNU_SCI_ADJ  = {'II': 0, 'IiII': 3, 'IIII': 5};
+
+const SNU_DEPT_INFO = {
+  hum:  { label: '유형①', desc: '인문계열 — 수학 ×1.2 / 탐구 ×0.8 / 제2외국어/한문 필수', mathMult: 1.2, expMult: 0.8, lang: true, sci: false },
+  sci1: { label: '유형②-1', desc: '이공계열(물리·화학 포함) — 수학 미적분/기하, 과탐 필수(물Ⅰ/Ⅱ·화Ⅰ/Ⅱ 중 1과목)', mathMult: 1.2, expMult: 0.8, lang: false, sci: true },
+  sci2: { label: '유형②-2', desc: '이공계열(일반 이과) — 수학 미적분/기하, 과탐 2과목 자유선택', mathMult: 1.2, expMult: 0.8, lang: false, sci: true },
+  etc:  { label: '유형③', desc: '기타계열 — 수학 선택 자유, 탐구 구분 없이 2과목', mathMult: 1.2, expMult: 0.8, lang: false, sci: false },
+};
+
+function snuOnDeptChange() {
+  const dept = document.getElementById('snu-dept').value;
+  const info = SNU_DEPT_INFO[dept];
+  const box = document.getElementById('snu-dept-info');
+  if (!info) { box.style.display='none'; return; }
+  box.style.display = 'block';
+  box.innerHTML = `<strong>${info.label}</strong> — ${info.desc}`;
+  document.getElementById('snu-lang-row').style.display = info.lang ? 'block' : 'none';
+  document.getElementById('snu-sci-combo-row').style.display = info.sci ? 'block' : 'none';
+  document.getElementById('snu-math-hint').textContent = `×${info.mathMult} 가중 반영`;
+  document.getElementById('snu-result').classList.remove('show');
+}
+function snuTogglePenalty() {
+  document.getElementById('snu-penalty-tip').classList.toggle('open');
+}
+function snuPenalty(tbl, g) { return tbl[g - 1] || 0; }
+
+function snuCalculate() {
+  const dept = document.getElementById('snu-dept').value;
+  if (!dept) { alert('모집단위를 먼저 선택해 주세요.'); return; }
+  const info = SNU_DEPT_INFO[dept];
+  const kor  = parseFloat(document.getElementById('snu-kor').value)  || 0;
+  const math = parseFloat(document.getElementById('snu-math').value) || 0;
+  const exp1 = parseFloat(document.getElementById('snu-exp1').value) || 0;
+  const exp2 = parseFloat(document.getElementById('snu-exp2').value) || 0;
+  const eng  = parseInt(document.getElementById('snu-eng').value);
+  const hist = parseInt(document.getElementById('snu-history').value);
+
+  const mathScore = math * info.mathMult;
+  const expScore  = (exp1 + exp2) * info.expMult;
+  const engPen    = snuPenalty(SNU_ENG_PEN, eng);
+  const histPen   = snuPenalty(SNU_HIST_PEN, hist);
+  let langPen = 0, sciAdj = 0;
+  if (info.lang) langPen = snuPenalty(SNU_LANG_PEN, parseInt(document.getElementById('snu-lang').value));
+  if (info.sci) sciAdj = SNU_SCI_ADJ[document.getElementById('snu-sci-combo').value] || 0;
+
+  const total = kor + mathScore + expScore - engPen - histPen - langPen + sciAdj;
+
+  document.getElementById('snu-result-total').innerHTML =
+    `<span style="color:var(--ku-gold-l)">${total.toFixed(2)}</span><small>점 (원점수 합산)</small>`;
+
+  const rows = [
+    { label: '국어 표준점수', raw: `${kor}`, value: kor, cls: 'pos' },
+    { label: `수학 ×${info.mathMult}`, raw: `${math}`, value: mathScore, cls: 'pos' },
+    { label: `탐구 (${exp1}+${exp2}) ×${info.expMult}`, raw: '', value: expScore, cls: 'pos' },
+    { label: `영어 ${eng}등급 감점`, raw: `${eng}등급`, value: -engPen, cls: engPen > 0 ? 'neg' : '' },
+    { label: `한국사 ${hist}등급 감점`, raw: `${hist}등급`, value: -histPen, cls: histPen > 0 ? 'neg' : '' },
+  ];
+  if (info.lang) {
+    const lg = parseInt(document.getElementById('snu-lang').value);
+    const lp = snuPenalty(SNU_LANG_PEN, lg);
+    rows.push({ label: `제2외국어 ${lg}등급 감점`, raw: `${lg}등급`, value: -lp, cls: lp > 0 ? 'neg' : '' });
+  }
+  if (info.sci && sciAdj) rows.push({ label: '과탐 조합 조정점수', raw: '', value: sciAdj, cls: 'pos' });
+  rows.push({ label: '총계', raw: '', value: total, cls: '', isTotal: true });
+
+  document.getElementById('snu-breakdown').innerHTML = rows.map(r =>
+    `<div class="breakdown-row${r.isTotal?' total':''}">
+      <span>${r.label}</span>
+      <span class="raw">${r.raw}</span>
+      <span class="value ${r.cls||''}">${r.value.toFixed(2)}</span>
+    </div>`).join('');
+  const rp = document.getElementById('snu-result');
+  rp.classList.add('show');
+  rp.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ══════════════════════════════════════════════════════════
+// KU
+// ══════════════════════════════════════════════════════════
+const KU_ENG_PEN  = [0, 3, 6, 9, 12, 15, 18, 21, 24];
+const KU_HIST_PEN = [0, 0, 0, 0.2, 0.4, 0.6, 0.8, 0.8, 2.0];
+
+let kuType   = 'gen';  // gen | edu
+let kuSeries = 'hum';  // hum | sci | med | nur
+
+const KU_SERIES_INFO = {
+  hum: '인문계열 — 국어 200 + 수학 200 + 탐구 160 만점 기준. 수학 반영 비율 1:1.',
+  sci: '자연계열 — 국어 200 + 수학 240 + 탐구 200 만점 기준. 수학 비중 높음. 과탐 응시 시 +3% 가산.',
+  med: '의학계열 — 자연계열과 동일한 비율 적용. 과탐 응시 시 +3% 가산.',
+  nur: '가정교육과 / 간호대학 — 국어 200 + 수학 200 + 탐구 160 (인문계열 비율 적용).',
+};
+
+function kuSelectType(t) {
+  kuType = t;
+  document.getElementById('ku-tab-gen').className = 'tab-btn' + (t==='gen' ? ' active-ku' : '');
+  document.getElementById('ku-tab-edu').className = 'tab-btn' + (t==='edu' ? ' active-ku' : '');
+  document.getElementById('ku-hakbu-row').style.display = t === 'edu' ? 'block' : 'none';
+  document.getElementById('ku-result').classList.remove('show');
+}
+function kuSelectSeries(s) {
+  kuSeries = s;
+  ['hum','sci','med','nur'].forEach(x => {
+    document.getElementById('ku-tab-'+x).className = 'tab-btn' + (x===s ? ' active-ku' : '');
+  });
+  const box = document.getElementById('ku-series-info');
+  box.style.display = 'block';
+  box.innerHTML = KU_SERIES_INFO[s];
+  const isSci = s === 'sci' || s === 'med';
+  document.getElementById('ku-sci-bonus-row').style.display = isSci ? 'block' : 'none';
+  document.getElementById('ku-math-hint').textContent = isSci ? '×240점 기준 반영 (표준점수×1.2)' : '200점 만점 반영';
+  document.getElementById('ku-result').classList.remove('show');
+}
+function kuTogglePenalty() {
+  document.getElementById('ku-penalty-tip').classList.toggle('open');
+}
+
+function kuCalculate() {
+  const kor  = parseFloat(document.getElementById('ku-kor').value)  || 0;
+  const math = parseFloat(document.getElementById('ku-math').value) || 0;
+  const exp1 = parseFloat(document.getElementById('ku-exp1').value) || 0;
+  const exp2 = parseFloat(document.getElementById('ku-exp2').value) || 0;
+  const eng  = parseInt(document.getElementById('ku-eng').value);
+  const hist = parseInt(document.getElementById('ku-history').value);
+
+  const isSci = kuSeries === 'sci' || kuSeries === 'med';
+  // KU: 자연계열 수학 240점 만점 = 표준점수 × (240/200) = ×1.2
+  const mathScore = isSci ? math * 1.2 : math;
+  // 탐구: 자연/의학 200점, 인문/간호 160점
+  const expBase = isSci ? 1.0 : 0.8;
+  const expScore = (exp1 + exp2) * expBase;
+
+  // 과탐 가산 (3%)
+  let sciBonus = 0;
+  if (isSci) {
+    const sb = parseInt(document.getElementById('ku-sci-bonus').value);
+    if (sb === 3) sciBonus = (exp1 + exp2) * 0.03;
+  }
+
+  const engPen  = KU_ENG_PEN[eng - 1]  || 0;
+  const histPen = KU_HIST_PEN[hist - 1] || 0;
+
+  let snuScore = kor + mathScore + expScore + sciBonus - engPen - histPen;
+
+  // 교과우수전형: 수능 80% + 학생부 20%
+  let hakbuScore = 0, totalScore = 0;
+  let labelText = '수능 환산 점수 (일반전형)';
+  if (kuType === 'edu') {
+    const hb = parseFloat(document.getElementById('ku-hakbu').value);
+    hakbuScore = isNaN(hb) ? 0 : hb;
+    totalScore = snuScore * 0.8 + hakbuScore * 0.2;
+    labelText = '수능 환산 점수 (교과우수전형)';
+  } else {
+    totalScore = snuScore;
+  }
+
+  document.getElementById('ku-result-label').textContent = labelText;
+  document.getElementById('ku-result-total').innerHTML =
+    `<span style="color:var(--ku-gold-l)">${totalScore.toFixed(2)}</span><small>점</small>`;
+
+  const rows = [
+    { label: '국어 표준점수', raw: `${kor}`, value: kor, cls: 'pos' },
+    { label: `수학 표준점수${isSci?' ×1.2':''}`, raw: `${math}`, value: mathScore, cls: 'pos' },
+    { label: `탐구 (${exp1}+${exp2}) ×${expBase}`, raw: '', value: expScore, cls: 'pos' },
+  ];
+  if (sciBonus > 0) rows.push({ label: '과탐 가산점 (+3%)', raw: '', value: sciBonus, cls: 'pos' });
+  rows.push(
+    { label: `영어 감점 (${eng}등급)`, raw: '', value: -engPen, cls: engPen > 0 ? 'neg' : '' },
+    { label: `한국사 감점 (${hist}등급)`, raw: '', value: -histPen, cls: histPen > 0 ? 'neg' : '' },
+  );
+  if (kuType === 'edu') {
+    rows.push({ label: '위 수능 합계 ×0.8', raw: '', value: snuScore * 0.8, cls: 'pos' });
+    rows.push({ label: '학생부(교과) ×0.2', raw: `${hakbuScore}점`, value: hakbuScore * 0.2, cls: 'pos' });
+  }
+  rows.push({ label: '총계', raw: '', value: totalScore, cls: '', isTotal: true });
+
+  document.getElementById('ku-breakdown').innerHTML = rows.map(r =>
+    `<div class="breakdown-row${r.isTotal?' total':''}">
+      <span>${r.label}</span>
+      <span class="raw">${r.raw}</span>
+      <span class="value ${r.cls||''}">${r.value.toFixed(2)}</span>
+    </div>`).join('');
+  const rp = document.getElementById('ku-result');
+  rp.classList.add('show');
+  rp.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ══════════════════════════════════════════════════════════
+// YU
+// ══════════════════════════════════════════════════════════
+let yuType = '1';
+
+const YU_TYPE_INFO = {
+  '1': '<strong>유형 Ⅰ (인문)</strong> — 국어(300, ×1.5) + 수학(200) + 탐구(200) + 영어(100). 사탐/과탐 인정, 과탐 응시 +3%. 총 800점 → 950점 환산.',
+  '2': '<strong>유형 Ⅱ (자연)</strong> — 국어(200) + 수학(300, ×1.5) + 탐구(300, ×1.5) + 영어(100). 과탐 응시 +3%. 총 900점 → 950점 환산.',
+  '3': '<strong>유형 Ⅲ (통합/상경·생활과학·간호·체능·국제)</strong> — 국어(200) + 수학(200) + 탐구(100) + 영어(100). 사탐/과탐 인정. 총 600점 → 950점 환산.',
+};
+
+function yuSelectType(t) {
+  yuType = t;
+  ['1','2','3'].forEach(x => {
+    document.getElementById('yu-tab-'+x).className = 'tab-btn' + (x===t ? ' active-yu' : '');
+  });
+  document.getElementById('yu-type-info').innerHTML = YU_TYPE_INFO[t];
+  // 힌트 업데이트
+  document.getElementById('yu-kor-hint').textContent =
+    t==='1' ? '×1.5 반영 → 300점 만점' : (t==='2' ? '200점 반영' : '200점 반영');
+  document.getElementById('yu-math-hint').textContent =
+    t==='2' ? '×1.5 반영 → 300점 만점' : (t==='1' ? '200점 반영' : '200점 반영');
+  document.getElementById('yu-result').classList.remove('show');
+}
+function yuTogglePenalty() {
+  document.getElementById('yu-penalty-tip').classList.toggle('open');
+}
+
+function yuCalculate() {
+  const kor  = parseFloat(document.getElementById('yu-kor').value)  || 0;
+  const math = parseFloat(document.getElementById('yu-math').value) || 0;
+  const exp1 = parseFloat(document.getElementById('yu-exp1').value) || 0;
+  const exp2 = parseFloat(document.getElementById('yu-exp2').value) || 0;
+  const engScore  = parseFloat(document.getElementById('yu-eng').value);
+  const histPen   = parseFloat(document.getElementById('yu-history').value);
+  const tanguType = document.getElementById('yu-tangu-type').value;
+
+  let korScore, mathScore, expScore, maxScore;
+
+  if (yuType === '1') {
+    // 유형Ⅰ: 국어×1.5(300) + 수학(200) + 탐구(200) + 영어(100) = 800
+    korScore  = kor * 1.5;
+    mathScore = math;
+    expScore  = exp1 + exp2;
+    maxScore  = 800;
+  } else if (yuType === '2') {
+    // 유형Ⅱ: 국어(200) + 수학×1.5(300) + 탐구×1.5(300) + 영어(100) = 900
+    korScore  = kor;
+    mathScore = math * 1.5;
+    expScore  = (exp1 + exp2) * 1.5;
+    maxScore  = 900;
+  } else {
+    // 유형Ⅲ: 국어(200) + 수학(200) + 탐구(100) + 영어(100) = 600
+    korScore  = kor;
+    mathScore = math;
+    expScore  = (exp1 + exp2) * 0.5;
+    maxScore  = 600;
+  }
+
+  // 과탐 가산 (+3% per subject)
+  let sciBonus = 0;
+  if (tanguType !== '0') {
+    const baseExp = exp1 + exp2;
+    sciBonus = baseExp * 0.03;
+  }
+
+  const rawTotal = korScore + mathScore + expScore + engScore + sciBonus - histPen;
+  // 수능 950점으로 환산
+  const snuConverted = rawTotal * (950 / maxScore);
+
+  // 학생부
+  const hbRaw = parseFloat(document.getElementById('yu-hakbu').value);
+  const hakbu = isNaN(hbRaw) ? 50 : Math.min(hbRaw, 50);
+  const finalTotal = snuConverted + hakbu;
+
+  document.getElementById('yu-result-total').innerHTML =
+    `<span style="color:#90b8ff">${finalTotal.toFixed(2)}</span><small> / 1,000점</small>`;
+
+  const rows = [
+    { label: `국어${yuType==='1'?' ×1.5':''}`, raw: `${kor}`, value: korScore, cls: 'pos' },
+    { label: `수학${yuType==='2'?' ×1.5':''}`, raw: `${math}`, value: mathScore, cls: 'pos' },
+    { label: `탐구 합산${yuType==='3'?' ×0.5':yuType==='2'?' ×1.5':''}`, raw: `${exp1}+${exp2}`, value: expScore, cls: 'pos' },
+    { label: '영어 등급 점수', raw: '', value: engScore, cls: 'pos' },
+  ];
+  if (sciBonus > 0) rows.push({ label: '과탐 가산 (+3%)', raw: '', value: sciBonus, cls: 'pos' });
+  if (histPen > 0) rows.push({ label: '한국사 감점', raw: '', value: -histPen, cls: 'neg' });
+  rows.push({ label: `수능 합계 (→ 950점 환산: ×${(950/maxScore).toFixed(4)})`, raw: rawTotal.toFixed(2), value: snuConverted, cls: 'pos' });
+  rows.push({ label: '학생부(교과)', raw: `${hakbu}점 입력`, value: hakbu, cls: 'pos' });
+  rows.push({ label: '최종 합계', raw: '', value: finalTotal, cls: '', isTotal: true });
+
+  document.getElementById('yu-breakdown').innerHTML = rows.map(r =>
+    `<div class="breakdown-row${r.isTotal?' total':''}">
+      <span>${r.label}</span>
+      <span class="raw">${r.raw}</span>
+      <span class="value ${r.cls||''}">${r.value.toFixed(2)}</span>
+    </div>`).join('');
+  const rp = document.getElementById('yu-result');
+  rp.classList.add('show');
+  rp.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// ══════════════════════════════════════════════════════════
+// SKKU (성균관대)
+// ══════════════════════════════════════════════════════════
+let skkuGun = 'ga'; // ga | na | da
+
+// 영어·한국사 감점 동일
+const SKKU_PEN = [0, 0, 0, 0, 1, 2, 5, 10, 20];
+
+// 모집군별 모집단위 데이터
+// weights: [국어비율, 수학비율, 탐구비율, 영어비율]
+// expCount: 탐구 과목 수 (1 or 2)
+// sciBonus: 과탐 가산 가능 여부
+const SKKU_DEPTS = {
+  ga: [
+    { label: '자유전공계열 / 사회과학계열', weights: [45, 35, 10, 10], expCount: 2, sciBonus: true,
+      info: '국어·수학 중 우수한 순 45, 35점 반영. 탐구 10%, 영어 10%. 과탐 가산 최대 5%.' },
+    { label: '의상학과 / 자연과학계열 / 반도체시스템공학과 / 약학과 / 글로벌AI융합학부', weights: [15, 40, 15, 10], expCount: 2, sciBonus: true,
+      info: '국어 15%. 수학 우수한 순 40, 30점. 탐구 15%. 영어 10%. 과탐 가산 최대 5%.' },
+    { label: '의예과', weights: [30, 30, 20, 20], expCount: 2, sciBonus: false,
+      info: '국어 30%, 수학 30%, 탐구 20%, 영어 20%. 과탐 가산 없음.' },
+    { label: '미술학과 / 디자인학과', weights: [45, 0, 45, 10], expCount: 2, sciBonus: false,
+      info: '국어 45%, 수학 없음, 탐구 45%, 영어 10%.' },
+    { label: '스포츠과학과', weights: [35, 25, 30, 10], expCount: 1, sciBonus: false,
+      info: '국어 35%, 수학 25%, 탐구(상위 1과목) 30%, 영어 10%.' },
+  ],
+  na: [
+    { label: '경영학과 / 영상학과 / 공학계열 / 컴퓨터공학과', weights: [45, 30, 15, 10], expCount: 2, sciBonus: true,
+      info: '국어·수학 우수한 순 45, 30점. 탐구 15%, 영어 10%. 과탐 가산 최대 5%. ※나군은 백분위 입력.' },
+    { label: '인문과학계열 / 글로벌리더학부 / 전자전기정보공학부 / 바이오신약규제과학과 / 지능형소프트웨어학과', weights: [35, 30, 15, 20], expCount: 2, sciBonus: true,
+      info: '국어·수학 우수한 순 35, 30점. 탐구 15%, 영어 20%. 과탐 가산 최대 5%. ※나군은 백분위 입력.' },
+  ],
+  da: [
+    { label: '글로벌경제학과 / 건설환경공학부 / 반도체융합공학과 / 인공지능학과', weights: [45, 35, 10, 10], expCount: 1, sciBonus: true,
+      info: '국어·수학 우수한 순 45, 35점. 탐구(상위 1과목) 10%, 영어 10%. 과탐 가산 최대 5%.' },
+    { label: '글로벌경영학과 / 배터리학과 / 글로벌바이오메디컬공학과 / 에너지학과 / 양자정보공학과', weights: [35, 30, 25, 10], expCount: 1, sciBonus: true,
+      info: '국어·수학 우수한 순 35, 30점. 탐구(상위 1과목) 25%, 영어 10%. 과탐 가산 최대 5%.' },
+  ]
+};
+
+function skkuSelectGun(g) {
+  skkuGun = g;
+  ['ga','na','da'].forEach(x => {
+    document.getElementById('skku-tab-'+x).className = 'tab-btn' + (x===g ? ' active-skku' : '');
+  });
+  // 탐구 힌트 업데이트
+  const isNa = g === 'na';
+  const hint = isNa ? '백분위 입력 (나군)' : '표준점수 입력 (가·다군)';
+  document.getElementById('skku-exp1-hint').textContent = hint;
+  document.getElementById('skku-exp2-hint').textContent = hint;
+  document.getElementById('skku-score-hint').textContent = isNa ? '나군: 백분위 입력' : '가·다군: 표준점수 입력';
+
+  // 모집단위 셀렉트 업데이트
+  const sel = document.getElementById('skku-dept');
+  sel.innerHTML = '<option value="">— 모집단위를 선택하세요 —</option>';
+  SKKU_DEPTS[g].forEach((d, i) => {
+    sel.innerHTML += `<option value="${i}">${d.label}</option>`;
+  });
+  document.getElementById('skku-dept-info').style.display = 'none';
+  document.getElementById('skku-result').classList.remove('show');
+}
+
+function skkuOnDeptChange() {
+  const idx = document.getElementById('skku-dept').value;
+  const info = document.getElementById('skku-dept-info');
+  if (idx === '') { info.style.display = 'none'; return; }
+  const d = SKKU_DEPTS[skkuGun][parseInt(idx)];
+  info.style.display = 'block';
+  info.textContent = d.info;
+  // 탐구2 표시/숨김
+  document.getElementById('skku-exp2-field').style.opacity = d.expCount === 1 ? '0.4' : '1';
+  document.getElementById('skku-result').classList.remove('show');
+}
+
+function skkuTogglePenalty() {
+  document.getElementById('skku-penalty-tip').classList.toggle('open');
+}
+
+function skkuCalculate() {
+  const idx = document.getElementById('skku-dept').value;
+  if (idx === '') { alert('모집단위를 선택해 주세요.'); return; }
+  const d = SKKU_DEPTS[skkuGun][parseInt(idx)];
+
+  const kor  = parseFloat(document.getElementById('skku-kor').value)  || 0;
+  const math = parseFloat(document.getElementById('skku-math').value) || 0;
+  const exp1 = parseFloat(document.getElementById('skku-exp1').value) || 0;
+  const exp2 = d.expCount === 2 ? (parseFloat(document.getElementById('skku-exp2').value) || 0) : 0;
+  const engGrade  = parseInt(document.getElementById('skku-eng').value);
+  const histGrade = parseInt(document.getElementById('skku-history').value);
+  const sciBonusOn = parseInt(document.getElementById('skku-sci-bonus').value) > 0;
+
+  const engPen  = SKKU_PEN[engGrade - 1]  || 0;
+  const histPen = SKKU_PEN[histGrade - 1] || 0;
+
+  const [w0, w1, w2, w3] = d.weights; // 국어, 수학, 탐구, 영어 비율
+
+  // 탐구 점수: 나군은 과목별 백분위 합산, 가·다군은 표준점수
+  // expCount=1 이면 상위 1과목만 (exp1만 사용)
+  const expRaw = d.expCount === 1 ? exp1 : (exp1 + exp2);
+
+  // 국어·수학 우수한 영역 순 반영 (두 값을 정렬해서 큰 것에 큰 비율)
+  // w0, w1이 "우수한 순 X, Y" 방식인 경우 처리
+  // 의예과·미술학과는 고정 비율
+  let korScore, mathScore;
+  const isFlexible = !(d.label.includes('의예') || d.label.includes('미술') || d.label.includes('디자인') || d.label.includes('스포츠'));
+  if (isFlexible && w0 > w1) {
+    // 우수한 영역에 큰 비율
+    const bigger  = Math.max(kor, math);
+    const smaller = Math.min(kor, math);
+    korScore  = bigger  * (w0 / 100);
+    mathScore = smaller * (w1 / 100);
+  } else {
+    korScore  = kor  * (w0 / 100);
+    mathScore = math * (w1 / 100);
+  }
+
+  const expScore = expRaw * (w2 / 100);
+  // 영어: 나군은 변환백분위 기반이지만 여기선 비율 적용 후 감점
+  // 영어 비율 적용 점수 기준: 1등급=100점으로 환산 후 비율 적용
+  // 실제로는 등급별 변환 점수 방식이나, 감점 방식으로 단순화
+  const engBaseScore = 100 * (w3 / 100); // 1등급 만점
+  const engScore = engBaseScore - engPen * (w3 / 100);
+
+  // 과탐 가산 (탐구 점수의 5%)
+  let sciBonus = 0;
+  if (d.sciBonus && sciBonusOn) {
+    sciBonus = expScore * 0.05;
+  }
+
+  const total = korScore + mathScore + expScore + engScore + sciBonus - histPen * (w3 / 100 + 0.1);
+  // 더 직관적인 계산: 감점은 원점수에서 그대로 차감
+  const total2 = korScore + mathScore + expScore + (100 * w3 / 100) + sciBonus - engPen - histPen;
+
+  document.getElementById('skku-result-label').textContent =
+    `수능 환산 점수 — ${skkuGun === 'ga' ? '가' : skkuGun === 'na' ? '나' : '다'}군 · ${d.label}`;
+  document.getElementById('skku-result-total').innerHTML =
+    `<span style="color:#a8d4a0">${total2.toFixed(2)}</span><small>점</small>`;
+
+  const rows = [];
+  if (isFlexible && w0 > w1) {
+    rows.push({ label: `국어 (우수한 영역 × ${w0}%)`, raw: `${kor}`, value: korScore, cls: 'pos' });
+    rows.push({ label: `수학 (차순위 영역 × ${w1}%)`, raw: `${math}`, value: mathScore, cls: 'pos' });
+  } else {
+    rows.push({ label: `국어 × ${w0}%`, raw: `${kor}`, value: korScore, cls: 'pos' });
+    if (w1 > 0) rows.push({ label: `수학 × ${w1}%`, raw: `${math}`, value: mathScore, cls: 'pos' });
+  }
+  rows.push({ label: `탐구 (${d.expCount === 1 ? '상위 1과목' : exp1 + '+' + exp2}) × ${w2}%`, raw: '', value: expScore, cls: 'pos' });
+  rows.push({ label: `영어 1등급 기준 (${w3}점 만점)`, raw: `${engGrade}등급`, value: 100 * w3 / 100, cls: 'pos' });
+  if (sciBonus > 0) rows.push({ label: '과탐 가산 (+5%)', raw: '', value: sciBonus, cls: 'pos' });
+  if (engPen > 0)  rows.push({ label: `영어 등급 감점 (${engGrade}등급)`,  raw: '', value: -engPen, cls: 'neg' });
+  if (histPen > 0) rows.push({ label: `한국사 등급 감점 (${histGrade}등급)`, raw: '', value: -histPen, cls: 'neg' });
+  rows.push({ label: '총계', raw: '', value: total2, cls: '', isTotal: true });
+
+  document.getElementById('skku-breakdown').innerHTML = rows.map(r =>
+    `<div class="breakdown-row${r.isTotal?' total':''}">
+      <span>${r.label}</span>
+      <span class="raw">${r.raw}</span>
+      <span class="value ${r.cls||''}">${r.value.toFixed(2)}</span>
+    </div>`).join('');
+  const rp = document.getElementById('skku-result');
+  rp.classList.add('show');
+  rp.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+// 페이지 로드 시 성균관대 셀렉트 초기화
+document.addEventListener('DOMContentLoaded', () => {
+  skkuSelectGun('ga');
+});
+</script>
+</body>
+</html>
