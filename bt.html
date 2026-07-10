@@ -135,9 +135,9 @@
 <script>
     let universityData = [];
     let calculatedResults = []; 
-    let currentDataSource = 'betelgeuse'; // 기본값
+    let currentDataSource = 'betelgeuse';
 
-    // 1. 베텔기우스 데이터 파싱 (기존 로직)
+    // 1. 베텔기우스 데이터 파싱 (기존 로직 유지)
     function parseBetelgeuseData(rawText) {
         const lines = rawText.trim().split(/\r?\n/);
         const parsed = [];
@@ -190,27 +190,25 @@
         return parsed;
     }
 
-    // 2. 이투스 데이터 파싱 (신규 로직)
-    // 구조: ... | 지역(6) | 대학명(7) | 전형유형(8) | 모집군(9) | 계열(10) | 상세계열(11) | 모집단위명(12) | ... | 국수탐(2)표점(26) | ...
+    // 2. 이투스 데이터 파싱 (수정됨: Tab과 | 모두 인식)
     function parseEtusData(rawText) {
         const lines = rawText.trim().split(/\r?\n/);
         const parsed = [];
         
         lines.forEach(line => {
-            const parts = line.split('|').map(p => p.trim());
-            if (parts.length < 27) return; // 최소 열 개수 체크
+            // 핵심 수정: 엑셀 복사(Tab)와 텍스트(|) 구분자를 모두 인식
+            const parts = line.split(/\t|\|/).map(p => p.trim());
+            if (parts.length < 27) return; 
 
             const university = parts[7];
             const category = parts[10];
             const department = parts[12];
             
-            // 26번 인덱스(국수탐2 표준점수) 우선 확인, 없으면 23번(표준점수) 확인
             let cutScore = parseFloat(parts[26]);
             if (isNaN(cutScore) || cutScore < 50 || cutScore > 600) {
                 cutScore = parseFloat(parts[23]);
             }
 
-            // 유효성 검사
             if (university && university !== '*' && department && department !== '*' && !isNaN(cutScore)) {
                 parsed.push({
                     university: String(university).trim(),
@@ -229,7 +227,6 @@
         universityData = [];
         calculatedResults = [];
         
-        // 버튼 UI 활성화 토글
         document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
         if (source === 'betelgeuse') {
             document.querySelector('.toggle-btn:nth-child(1)').classList.add('active');
@@ -265,8 +262,8 @@
             }
         } catch (error) {
             console.error('데이터 로드 실패:', error);
-            document.getElementById('resultCount').innerText = `❌ ${fileName} 파일을 불러오지 못했습니다.`;
-            document.getElementById('resultBody').innerHTML = `<tr><td colspan="6" style="color:red;">${fileName} 파일이 index.html과 같은 폴더에 있는지 확인해주세요.<br>(깃허브 페이지가 활성화되어야 작동합니다.)</td></tr>`;
+            document.getElementById('resultCount').innerText = `❌ ${fileName} 파일을 불러오지 못했거나 데이터 형식이 맞지 않습니다.`;
+            document.getElementById('resultBody').innerHTML = `<tr><td colspan="6" style="color:red;">${fileName} 파일이 index.html과 같은 폴더에 있는지 확인해주세요.<br>깃허브 페이지(GitHub Pages)가 활성화되어 있어야 작동합니다.</td></tr>`;
         }
     }
 
@@ -341,7 +338,6 @@
         const showDifficult = document.getElementById('filterDifficult').checked;
 
         let filtered = calculatedResults.filter(item => {
-            // 계열 필터링 (이투스 '공통'과 베텔 '통합'을 유연하게 처리)
             const categoryMatch = (selectedCategory === 'all' || item.category === selectedCategory || item.category === '통합' || item.category === '공통');
             const univSelectMatch = (selectedUniv === 'all' || item.university === selectedUniv);
             const statusMatch = (item.status === "충분" && showSufficient) || 
