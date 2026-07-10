@@ -9,7 +9,6 @@
         .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
 
-        /* 데이터 소스 토글 */
         .data-toggle { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .toggle-btn { padding: 12px 25px; font-size: 16px; font-weight: bold; border: 2px solid #3498db; background-color: #fff; color: #3498db; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
         .toggle-btn.active { background-color: #3498db; color: #fff; }
@@ -138,7 +137,6 @@
     let calculatedResults = []; 
     let currentDataSource = 'betelgeuse';
 
-    // 1. 베텔기우스 데이터 파싱
     function parseBetelgeuseData(rawText) {
         const lines = rawText.trim().split(/\r?\n/);
         const parsed = [];
@@ -191,9 +189,7 @@
         return parsed;
     }
 
-    // 2. 이투스 데이터 파싱 (완전 재작성 - 줄바꿈 포함 필드 처리)
     function parseEtusData(rawText) {
-        // Step 1: 따옴표 안의 줄바꿈을 공백으로 치환 (Excel 셀 내 줄바꿈 처리)
         let cleaned = '';
         let inQuotes = false;
         for (let i = 0; i < rawText.length; i++) {
@@ -208,10 +204,7 @@
             }
         }
 
-        // Step 2: 전체를 탭으로 분리 (파일 전체가 한 줄로 되어 있음)
         const allFields = cleaned.split('\t');
-
-        // Step 3: '정시요강'이 반복되는 위치로 행 크기 결정
         const positions = [];
         for (let i = 0; i < allFields.length; i++) {
             if (allFields[i] === '정시요강') {
@@ -220,13 +213,12 @@
         }
 
         if (positions.length < 2) {
-            console.error("이투스 데이터 구조 파악 실패: '정시요강' 패턴을 찾을 수 없습니다");
+            console.error("이투스 데이터 구조 파악 실패");
             return [];
         }
 
-        const ROW_SIZE = positions[1] - positions[0]; // 보통 65
+        const ROW_SIZE = positions[1] - positions[0];
 
-        // Step 4: 각 행 파싱
         const parsed = [];
         for (let p = 0; p < positions.length; p++) {
             const start = positions[p];
@@ -237,15 +229,35 @@
             const university = row[2]?.trim();
             const department = row[7]?.trim();
             const category = row[5]?.trim() || '자연';
+            const reflectType = row[16]?.trim() || '';
 
-            // 표준점수 찾기: 16~25 범위에서 100~500 사이의 값
             let cutScore = null;
-            for (let j = 16; j <= 25 && j < row.length; j++) {
-                const val = parseFloat(row[j]);
-                if (!isNaN(val) && val >= 100 && val <= 500) {
-                    cutScore = val;
-                    break;
-                }
+            const f17 = parseFloat(row[17]);
+            const f18 = parseFloat(row[18]);
+            const f19 = parseFloat(row[19]);
+            const f20 = parseFloat(row[20]);
+            const f21 = parseFloat(row[21]);
+            const f22 = parseFloat(row[22]);
+
+            if (reflectType.includes('국수탐(2)')) {
+                if (!isNaN(f18) && f18 >= 100 && f18 <= 500) cutScore = f18;
+                else if (!isNaN(f17) && f17 >= 100 && f17 <= 500) cutScore = f17;
+            } else if (reflectType.includes('국수탐(1)')) {
+                if (!isNaN(f18) && f18 >= 100 && f18 <= 500) cutScore = f18;
+                else if (!isNaN(f17) && f17 >= 100 && f17 <= 500) cutScore = f17;
+            } else if (reflectType.includes('국/수/탐(2)') || reflectType.includes('국/수/탐(1)')) {
+                if (!isNaN(f18) && f18 >= 100 && f18 <= 500) cutScore = f18;
+                else if (!isNaN(f17) && f17 >= 100 && f17 <= 500) cutScore = f17;
+            } else if (reflectType.includes('탐(2)')) {
+                if (!isNaN(f18) && f18 >= 100 && f18 <= 500) cutScore = f18;
+                else if (!isNaN(f20) && f20 >= 100 && f20 <= 500) cutScore = f20;
+            } else if (reflectType.includes('탐(1)')) {
+                if (!isNaN(f18) && f18 >= 100 && f18 <= 500) cutScore = f18;
+                else if (!isNaN(f20) && f20 >= 100 && f20 <= 500) cutScore = f20;
+            } else {
+                if (!isNaN(f18) && f18 >= 100 && f18 <= 500) cutScore = f18;
+                else if (!isNaN(f20) && f20 >= 100 && f20 <= 500) cutScore = f20;
+                else if (!isNaN(f17) && f17 >= 100 && f17 <= 500) cutScore = f17;
             }
 
             if (university && department && cutScore !== null) {
@@ -262,7 +274,6 @@
         return parsed;
     }
 
-    // 데이터 소스 변경
     async function switchDataSource(source) {
         currentDataSource = source;
         universityData = [];
@@ -281,7 +292,6 @@
         await loadData();
     }
 
-    // 데이터 자동 로드
     async function loadData() {
         const fileName = currentDataSource === 'betelgeuse' ? 'data.txt' : 'data2.txt';
         try {
@@ -304,7 +314,7 @@
         } catch (error) {
             console.error('데이터 로드 실패:', error);
             document.getElementById('resultCount').innerText = `❌ ${fileName} 파일을 불러오지 못했거나 데이터 형식이 맞지 않습니다.`;
-            document.getElementById('resultBody').innerHTML = `<tr><td colspan="6" style="color:red;">${fileName} 파일이 index.html과 같은 폴더에 있는지 확인해주세요.<br>깃허브 페이지(GitHub Pages)가 활성화되어 있어야 작동합니다.</td></tr>`;
+            document.getElementById('resultBody').innerHTML = `<tr><td colspan="6" style="color:red;">${fileName} 파일이 index.html과 같은 폴더에 있는지 확인해주세요.</td></tr>`;
         }
     }
 
@@ -420,7 +430,6 @@
         });
     }
 
-    // 페이지 로드 시 기본 데이터 로드
     window.onload = loadData;
 </script>
 
