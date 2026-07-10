@@ -190,46 +190,52 @@
         return parsed;
     }
 
-    // 2. 이투스 데이터 파싱 (스마트 인덱스 탐지 로직 적용)
+    // 2. 이투스 데이터 파싱 (정확한 헤더 인덱스 탐지 로직)
     function parseEtusData(rawText) {
         const lines = rawText.trim().split(/\r?\n/);
         const parsed = [];
         
         let uniIdx = -1, catIdx = -1, depIdx = -1, scoreIdx = -1;
+        let startLine = 0;
         
         // 헤더 찾기: '대학명'과 '모집단위명'이 있는 줄을 찾아 인덱스를 동적으로 결정
-        for (let i = 0; i < Math.min(lines.length, 20); i++) {
+        for (let i = 0; i < Math.min(lines.length, 30); i++) {
             const parts = lines[i].split(/\t|\|/).map(p => p.trim());
             if (parts.includes('대학명') && parts.includes('모집단위명')) {
                 uniIdx = parts.indexOf('대학명');
                 catIdx = parts.indexOf('계열');
                 depIdx = parts.indexOf('모집단위명');
                 
-                // 점수 헤더 찾기: 바로 다음 줄에서 '표준 점수'의 인덱스를 찾음
-                if (i + 1 < lines.length) {
-                    const nextParts = lines[i + 1].split(/\t|\|/).map(p => p.trim());
-                    scoreIdx = nextParts.indexOf('표준 점수');
+                // 점수 헤더 찾기: 헤더 줄에서 '국수탐(2) 기준' 또는 '국수탐(1) 기준' 인덱스를 찾음
+                if (parts.includes('국수탐(2) 기준')) {
+                    scoreIdx = parts.indexOf('국수탐(2) 기준');
+                } else if (parts.includes('국수탐(1) 기준')) {
+                    scoreIdx = parts.indexOf('국수탐(1) 기준');
                 }
+                
+                // 헤더 2줄(대분류, 소분류)을 건너뛰기 위해 데이터 시작 위치를 3줄 뒤로 설정
+                startLine = i + 3; 
                 break;
             }
         }
         
         // 헤더를 찾지 못한 경우 (사용자가 데이터만 복사한 경우 등) 기본 인덱스로 폴백
         if (uniIdx === -1 || scoreIdx === -1) {
-            uniIdx = 7; catIdx = 10; depIdx = 12; scoreIdx = 23;
+            uniIdx = 7; catIdx = 10; depIdx = 12; scoreIdx = 25;
+            startLine = 4; // 대략 4번째 줄부터 데이터라고 가정
         }
 
-        lines.forEach(line => {
-            const parts = line.split(/\t|\|/).map(p => p.trim());
+        for (let i = startLine; i < lines.length; i++) {
+            const parts = lines[i].split(/\t|\|/).map(p => p.trim());
             // 필요한 인덱스까지 데이터가 있는지 확인
-            if (parts.length <= Math.max(uniIdx, catIdx, depIdx, scoreIdx)) return;
+            if (parts.length <= Math.max(uniIdx, catIdx, depIdx, scoreIdx)) continue;
 
             const university = parts[uniIdx];
             const category = parts[catIdx];
             const department = parts[depIdx];
             const cutScore = parseFloat(parts[scoreIdx]);
 
-            // 유효성 검사: 대학명/학과명이 비어있지 않고, 점수가 숫자이며 50점 이상인 것만 필터링
+            // 유효성 검사: 대학명/학과명이 비어있지 않고(* 제외), 점수가 숫자이며 50점 이상인 것만 필터링
             if (university && university !== '*' && department && department !== '*' && !isNaN(cutScore) && cutScore > 50) {
                 parsed.push({
                     university: String(university).trim(),
@@ -238,7 +244,7 @@
                     cutScore: cutScore
                 });
             }
-        });
+        }
         return parsed;
     }
 
