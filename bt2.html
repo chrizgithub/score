@@ -8,7 +8,7 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; background-color: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; }
-        
+
         /* 데이터 소스 토글 */
         .data-toggle { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .toggle-btn { padding: 12px 25px; font-size: 16px; font-weight: bold; border: 2px solid #3498db; background-color: #fff; color: #3498db; border-radius: 8px; cursor: pointer; transition: all 0.3s; }
@@ -36,7 +36,7 @@
         th { color: #fff; font-weight: bold; }
         tr:nth-child(even) { background-color: #f9f9f9; }
         tr:hover { background-color: #f1f1f1; }
-        
+
         .status { font-weight: bold; padding: 5px 10px; border-radius: 15px; display: inline-block; min-width: 60px; }
         .sufficient { background-color: #d5edda; color: #155724; }
         .appropriate { background-color: #fff3cd; color: #856404; }
@@ -45,12 +45,13 @@
         .result-count { text-align: center; font-weight: bold; margin-bottom: 10px; color: #555; }
         .loading-message { text-align: center; font-size: 18px; color: #e67e22; font-weight: bold; padding: 50px 0; }
     </style>
+<base target="_blank">
 </head>
 <body>
 
 <div class="container">
     <h1>2026학년도 정시 지원 가능 대학 확인</h1>
-    
+
     <div class="data-toggle">
         <button class="toggle-btn active" onclick="switchDataSource('betelgeuse')">베텔기우스 데이터 기반</button>
         <button class="toggle-btn" onclick="switchDataSource('etus')">이투스 데이터 기반</button>
@@ -142,7 +143,7 @@
         const lines = rawText.trim().split(/\r?\n/);
         const parsed = [];
         let uniIdx = -1, depIdx = -1, catIdx = -1, scoreIdx = -1;
-        
+
         for (let i = 0; i < Math.min(lines.length, 20); i++) {
             const parts = lines[i].split(/\t|\|/).map(p => p.trim());
             if (parts.includes('대학') && parts.includes('학과')) {
@@ -190,80 +191,74 @@
         return parsed;
     }
 
-    // 2. 이투스 데이터 파싱 (완벽 수정: 2단 헤더 처리 및 표준점수 인덱스 정확히 찾기)
+    // 2. 이투스 데이터 파싱 (완전 재작성 - 줄바꿈 포함 필드 처리)
     function parseEtusData(rawText) {
-        const lines = rawText.trim().split(/\r?\n/);
-        const parsed = [];
-        
-        let uniIdx = -1, catIdx = -1, depIdx = -1, scoreIdx = -1;
-        let startLine = 0;
-        
-        for (let i = 0; i < Math.min(lines.length, 30); i++) {
-            const parts = lines[i].split(/\t|\|/).map(p => p.trim());
-            if (parts.includes('대학명') && parts.includes('모집단위명')) {
-                uniIdx = parts.indexOf('대학명');
-                catIdx = parts.indexOf('계열');
-                depIdx = parts.indexOf('모집단위명');
-                
-                // '국수탐(2) 기준' 위치 찾기
-                let tempScoreIdx = parts.indexOf('국수탐(2) 기준');
-                if(tempScoreIdx === -1) tempScoreIdx = parts.indexOf('국수탐(1) 기준');
-                
-                // 다음 줄(소분류 헤더) 확인해서 '표준 점수' 인덱스 찾기
-                if (i + 1 < lines.length && tempScoreIdx !== -1) {
-                    const nextParts = lines[i + 1].split(/\t|\|/).map(p => p.trim());
-                    if (nextParts.includes('표준 점수')) {
-                        // tempScoreIdx 위치 이후에서 가장 가까운 '표준 점수' 찾기
-                        for (let j = tempScoreIdx; j < nextParts.length; j++) {
-                            if (nextParts[j] === '표준 점수') {
-                                scoreIdx = j;
-                                break;
-                            }
-                        }
-                    }
-                }
-                
-                // 소분류 헤더가 없거나 찾지 못한 경우 폴백
-                if (scoreIdx === -1) {
-                    scoreIdx = tempScoreIdx !== -1 ? tempScoreIdx + 1 : 26; // 대략적인 폴백
-                }
-
-                // 데이터 시작 줄 계산 (소분류 헤더가 있으면 2줄 건너뛰기, 없으면 1줄)
-                startLine = i + 1;
-                if (i + 1 < lines.length) {
-                    const nextParts = lines[i + 1].split(/\t|\|/).map(p => p.trim());
-                    if (nextParts.includes('원점수') && nextParts.includes('표준 점수')) {
-                        startLine = i + 2; // 소분류 헤더가 존재하므로 2줄 뒤부터 데이터
-                    }
-                }
-                break;
+        // Step 1: 따옴표 안의 줄바꿈을 공백으로 치환 (Excel 셀 내 줄바꿈 처리)
+        let cleaned = '';
+        let inQuotes = false;
+        for (let i = 0; i < rawText.length; i++) {
+            const c = rawText[i];
+            if (c === '"') {
+                inQuotes = !inQuotes;
+                cleaned += c;
+            } else if (c === '\n' && inQuotes) {
+                cleaned += ' ';
+            } else {
+                cleaned += c;
             }
         }
-        
-        // 헤더를 아예 못 찾은 경우 폴백
-        if (uniIdx === -1 || scoreIdx === -1) {
-            uniIdx = 7; catIdx = 10; depIdx = 12; scoreIdx = 26;
-            startLine = 4;
+
+        // Step 2: 전체를 탭으로 분리 (파일 전체가 한 줄로 되어 있음)
+        const allFields = cleaned.split('\t');
+
+        // Step 3: '정시요강'이 반복되는 위치로 행 크기 결정
+        const positions = [];
+        for (let i = 0; i < allFields.length; i++) {
+            if (allFields[i] === '정시요강') {
+                positions.push(i);
+            }
         }
 
-        for (let i = startLine; i < lines.length; i++) {
-            const parts = lines[i].split(/\t|\|/).map(p => p.trim());
-            if (parts.length <= Math.max(uniIdx, catIdx, depIdx, scoreIdx)) continue;
+        if (positions.length < 2) {
+            console.error("이투스 데이터 구조 파악 실패: '정시요강' 패턴을 찾을 수 없습니다");
+            return [];
+        }
 
-            const university = parts[uniIdx];
-            const category = parts[catIdx];
-            const department = parts[depIdx];
-            const cutScore = parseFloat(parts[scoreIdx]);
+        const ROW_SIZE = positions[1] - positions[0]; // 보통 65
 
-            if (university && university !== '*' && department && department !== '*' && !isNaN(cutScore) && cutScore > 50) {
+        // Step 4: 각 행 파싱
+        const parsed = [];
+        for (let p = 0; p < positions.length; p++) {
+            const start = positions[p];
+            const row = allFields.slice(start, start + ROW_SIZE);
+
+            if (row.length < 20) continue;
+
+            const university = row[2]?.trim();
+            const department = row[7]?.trim();
+            const category = row[5]?.trim() || '자연';
+
+            // 표준점수 찾기: 16~25 범위에서 100~500 사이의 값
+            let cutScore = null;
+            for (let j = 16; j <= 25 && j < row.length; j++) {
+                const val = parseFloat(row[j]);
+                if (!isNaN(val) && val >= 100 && val <= 500) {
+                    cutScore = val;
+                    break;
+                }
+            }
+
+            if (university && department && cutScore !== null) {
                 parsed.push({
-                    university: String(university).trim(),
-                    department: String(department).trim(),
-                    category: String(category).trim(),
+                    university: university,
+                    department: department,
+                    category: category,
                     cutScore: cutScore
                 });
             }
         }
+
+        console.log(`이투스 데이터 파싱 완료: ${parsed.length}개`);
         return parsed;
     }
 
@@ -272,7 +267,7 @@
         currentDataSource = source;
         universityData = [];
         calculatedResults = [];
-        
+
         document.querySelectorAll('.toggle-btn').forEach(btn => btn.classList.remove('active'));
         if (source === 'betelgeuse') {
             document.querySelector('.toggle-btn:nth-child(1)').classList.add('active');
@@ -282,7 +277,7 @@
 
         document.getElementById('resultCount').innerText = "데이터를 불러오는 중입니다...";
         document.getElementById('resultBody').innerHTML = '<tr><td colspan="6" class="loading-message">⏳ ' + (source === 'betelgeuse' ? 'data.txt' : 'data2.txt') + ' 로드 중...</td></tr>';
-        
+
         await loadData();
     }
 
@@ -293,13 +288,13 @@
             const response = await fetch(fileName);
             if (!response.ok) throw new Error('File not found');
             const rawText = await response.text();
-            
+
             if (currentDataSource === 'betelgeuse') {
                 universityData = parseBetelgeuseData(rawText);
             } else {
                 universityData = parseEtusData(rawText);
             }
-            
+
             if(universityData.length > 0) {
                 document.getElementById('resultCount').innerText = `${fileName} 로드 완료! (총 ${universityData.length}개) 점수를 입력하고 확인 버튼을 눌러주세요.`;
                 document.getElementById('resultBody').innerHTML = '<tr><td colspan="6">점수 입력 후 [지원 가능 확인] 버튼을 누르면 결과가 나타납니다.</td></tr>';
@@ -344,7 +339,7 @@
             if (diff >= 0) { status = "충분"; statusClass = "sufficient"; } 
             else if (diff >= -5) { status = "적절"; statusClass = "appropriate"; } 
             else { status = "어려움"; statusClass = "difficult"; }
-            
+
             calculatedResults.push({
                 university: item.university,
                 department: item.department,
@@ -378,7 +373,7 @@
         const selectedCategory = document.getElementById('category').value;
         const selectedUniv = document.getElementById('univSelect').value;
         const sortType = document.getElementById('sortSelect').value;
-        
+
         const showSufficient = document.getElementById('filterSufficient').checked;
         const showAppropriate = document.getElementById('filterAppropriate').checked;
         const showDifficult = document.getElementById('filterDifficult').checked;
@@ -401,7 +396,7 @@
         const resultBody = document.getElementById('resultBody');
         const resultCount = document.getElementById('resultCount');
         resultBody.innerHTML = '';
-        
+
         if (filtered.length === 0) {
             resultCount.innerText = "검색 결과가 없습니다.";
             resultBody.innerHTML = '<tr><td colspan="6">조건에 맞는 대학/학과가 없습니다.</td></tr>';
